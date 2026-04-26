@@ -220,179 +220,187 @@ export default function App() {
 
             {isSignedIn && hasLoggedInThisVisit && (
                 <section className="panel health-panel">
-                    <div className="card-heading">
-                        <h2>Your Health Information</h2>
-                        <p>Submit and review your latest health check-in details.</p>
-                    </div>
-                    <div className="insight-grid kpi-top-grid">
-                        <div className="insight-card">
-                            <span>Risk Level</span>
-                            <strong>{healthTrend?.latest_is_healthy ? "Healthy" : healthInfo?.risk_level || "-"}</strong>
-                        </div>
-                        <div className="insight-card">
-                            <span>Latest Risk Score</span>
-                            <strong>{healthTrend?.latest_risk_score ?? "-"}</strong>
-                        </div>
-                        <div className="insight-card">
-                            <span>Trend Direction</span>
-                            <strong>{healthTrend?.trend_direction || "-"}</strong>
-                        </div>
-                        <div className="insight-card">
-                            <span>Healthy Check-ins</span>
-                            <strong>{healthTrend?.healthy_points ?? 0} / {healthTrend?.total_points ?? 0}</strong>
-                        </div>
-                    </div>
-                    <button className="primary-button" type="button" onClick={() => setIsHealthModalOpen(true)}>
-                        Add / Update Health Check-In
-                    </button>
-                    <button className="ghost-button" type="button" onClick={loadHealthDashboard}>
-                        Refresh Data
-                    </button>
-                    <div className="filter-grid">
-                        <label className="field">
-                            <span>Since</span>
-                            <input type="date" value={sinceFilter} onChange={(e) => setSinceFilter(e.target.value)} />
-                        </label>
-                        <label className="field">
-                            <span>Until</span>
-                            <input type="date" value={untilFilter} onChange={(e) => setUntilFilter(e.target.value)} />
-                        </label>
-                        <button className="ghost-button" type="button" onClick={loadHealthDashboard}>
-                            Apply Filters
-                        </button>
-                    </div>
-                    <p className="filter-summary">{filterSummary}</p>
-
-                    {healthSubmitMessage && (
-                        <p className={`status-message ${healthSubmitMessage.startsWith("✅") ? "success" : "error"}`}>
-                            {healthSubmitMessage}
-                        </p>
-                    )}
-
-                    {isHealthLoading && <p className="status-message">Loading health insights...</p>}
-
-                    {riskChartData.linePoints && (
-                        <div className="chart-wrap">
-                            <h3>Risk Trend</h3>
-                            <svg viewBox="0 0 100 100" className="risk-chart" preserveAspectRatio="none">
-                                <polyline points={riskChartData.linePoints} fill="none" stroke="#56d6ff" strokeWidth="2.2" />
-                                {riskChartData.points.map((point) => (
-                                    <circle
-                                        key={point.id}
-                                        cx={point.x}
-                                        cy={point.y}
-                                        r="2.2"
-                                        className="risk-point"
-                                        onClick={() => handleSelectCheckin(point.id)}
-                                    >
-                                        <title>{`${formatDateTime(point.recordedAt)} | Risk ${point.risk}`}</title>
-                                    </circle>
-                                ))}
-                            </svg>
-                            <p className="chart-caption">Click a point to view full check-in details.</p>
-                        </div>
-                    )}
-                    {healthHistory.length > 0 && (
-                        <div className="chart-wrap">
-                            <h3>Risk Distribution</h3>
-                            <div className="bar-chart">
-                                {riskLevelBars.map((bar) => (
-                                    <div key={bar.label} className="bar-col">
-                                        <div className={`bar-fill ${bar.tone}`} style={{ height: `${bar.height}%` }} />
-                                        <div className="bar-value">{bar.value}</div>
-                                        <div className="bar-label">{bar.label}</div>
-                                    </div>
-                                ))}
+                    <div className="dashboard-top">
+                        <div className="dashboard-top-left">
+                            <div className="card-heading">
+                                <h2>Your Health Information</h2>
+                                <p>Submit and review your latest health check-in details.</p>
                             </div>
-                        </div>
-                    )}
-                    <div className="chart-wrap">
-                        <h3>Backend GET Calls (This Session)</h3>
-                        <div className="insight-grid get-calls-grid">
-                            <div className="insight-card"><span>Latest</span><strong>{apiCallStats.latest}</strong></div>
-                            <div className="insight-card"><span>Trend</span><strong>{apiCallStats.trend}</strong></div>
-                            <div className="insight-card"><span>List</span><strong>{apiCallStats.list}</strong></div>
-                            <div className="insight-card"><span>Detail</span><strong>{apiCallStats.detail}</strong></div>
-                            <div className="insight-card">
-                                <span>Total GET Calls</span>
-                                <strong>{totalGetCalls}</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    {healthInfo && (
-                        <div className="health-summary">
-                            <h3>Latest Assessment</h3>
-                            <p>{healthInfo.assessment_summary || "Assessment summary not available yet."}</p>
-                            <div className="field-grid">
+                            <div className="insight-grid kpi-top-grid">
                                 <div className="insight-card">
-                                    <span>Vitals</span>
-                                    <strong>
-                                        HR {healthInfo.vitals?.heart_rate_bpm} | SpO2 {healthInfo.vitals?.spo2_percent}%
-                                    </strong>
+                                    <span>Risk Level</span>
+                                    <strong>{healthTrend?.latest_is_healthy ? "Healthy" : healthInfo?.risk_level || "-"}</strong>
                                 </div>
                                 <div className="insight-card">
-                                    <span>Body Temperature</span>
-                                    <strong>{healthInfo.body_temperature_c} C</strong>
+                                    <span>Latest Risk Score</span>
+                                    <strong>{healthTrend?.latest_risk_score ?? "-"}</strong>
                                 </div>
                                 <div className="insight-card">
-                                    <span>Feeling Score</span>
-                                    <strong>{healthInfo.feeling_score}/10</strong>
+                                    <span>Trend Direction</span>
+                                    <strong>{healthTrend?.trend_direction || "-"}</strong>
                                 </div>
                                 <div className="insight-card">
-                                    <span>Location</span>
-                                    <strong>{[healthInfo.city, healthInfo.region, healthInfo.country].filter(Boolean).join(", ")}</strong>
+                                    <span>Healthy Check-ins</span>
+                                    <strong>{healthTrend?.healthy_points ?? 0} / {healthTrend?.total_points ?? 0}</strong>
                                 </div>
                             </div>
                         </div>
-                    )}
+                        <div className="dashboard-top-right">
+                            <button className="primary-button" type="button" onClick={() => setIsHealthModalOpen(true)}>
+                                Feed your health info
+                            </button>
+                            <button className="ghost-button" type="button" onClick={loadHealthDashboard}>
+                                Refresh Data
+                            </button>
+                            <div className="filter-grid">
+                                <label className="field">
+                                    <span>Since</span>
+                                    <input type="date" value={sinceFilter} onChange={(e) => setSinceFilter(e.target.value)} />
+                                </label>
+                                <label className="field">
+                                    <span>Until</span>
+                                    <input type="date" value={untilFilter} onChange={(e) => setUntilFilter(e.target.value)} />
+                                </label>
+                                <button className="ghost-button" type="button" onClick={loadHealthDashboard}>
+                                    Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="dashboard-scroll">
+                        <p className="filter-summary">{filterSummary}</p>
 
-                    {healthHistory.length > 0 && (
-                        <div className="history-table-wrap">
-                            <h3>Recent Check-ins</h3>
-                            <table className="history-table">
-                                <thead>
-                                    <tr>
-                                        <th>Recorded</th>
-                                        <th>Risk</th>
-                                        <th>Status</th>
-                                        <th>Temp (C)</th>
-                                        <th>City</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {healthHistory.map((entry) => (
-                                        <tr key={entry.id}>
-                                            <td>{entry.recorded_at ? formatDateTime(entry.recorded_at) : "-"}</td>
-                                            <td>
-                                                <button
-                                                    className="link-button"
-                                                    type="button"
-                                                    onClick={() => handleSelectCheckin(entry.id)}
-                                                >
-                                                    {entry.risk_score ?? "-"}
-                                                </button>
-                                            </td>
-                                            <td>{entry.risk_level || (entry.is_healthy ? "healthy" : "at risk")}</td>
-                                            <td>{entry.body_temperature_c ?? "-"}</td>
-                                            <td>{entry.city || "-"}</td>
-                                        </tr>
+                        {healthSubmitMessage && (
+                            <p className={`status-message ${healthSubmitMessage.startsWith("✅") ? "success" : "error"}`}>
+                                {healthSubmitMessage}
+                            </p>
+                        )}
+
+                        {isHealthLoading && <p className="status-message">Loading health insights...</p>}
+
+                        {riskChartData.linePoints && (
+                            <div className="chart-wrap">
+                                <h3>Risk Trend</h3>
+                                <svg viewBox="0 0 100 100" className="risk-chart" preserveAspectRatio="none">
+                                    <polyline points={riskChartData.linePoints} fill="none" stroke="#56d6ff" strokeWidth="2.2" />
+                                    {riskChartData.points.map((point) => (
+                                        <circle
+                                            key={point.id}
+                                            cx={point.x}
+                                            cy={point.y}
+                                            r="2.2"
+                                            className="risk-point"
+                                            onClick={() => handleSelectCheckin(point.id)}
+                                        >
+                                            <title>{`${formatDateTime(point.recordedAt)} | Risk ${point.risk}`}</title>
+                                        </circle>
                                     ))}
-                                </tbody>
-                            </table>
+                                </svg>
+                                <p className="chart-caption">Click a point to view full check-in details.</p>
+                            </div>
+                        )}
+                        {healthHistory.length > 0 && (
+                            <div className="chart-wrap">
+                                <h3>Risk Distribution</h3>
+                                <div className="bar-chart">
+                                    {riskLevelBars.map((bar) => (
+                                        <div key={bar.label} className="bar-col">
+                                            <div className={`bar-fill ${bar.tone}`} style={{ height: `${bar.height}%` }} />
+                                            <div className="bar-value">{bar.value}</div>
+                                            <div className="bar-label">{bar.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <div className="chart-wrap">
+                            <h3>Backend GET Calls (This Session)</h3>
+                            <div className="insight-grid get-calls-grid">
+                                <div className="insight-card"><span>Latest</span><strong>{apiCallStats.latest}</strong></div>
+                                <div className="insight-card"><span>Trend</span><strong>{apiCallStats.trend}</strong></div>
+                                <div className="insight-card"><span>List</span><strong>{apiCallStats.list}</strong></div>
+                                <div className="insight-card"><span>Detail</span><strong>{apiCallStats.detail}</strong></div>
+                                <div className="insight-card">
+                                    <span>Total GET Calls</span>
+                                    <strong>{totalGetCalls}</strong>
+                                </div>
+                            </div>
                         </div>
-                    )}
 
-                    {(selectedCheckin || isCheckinLoading) && (
-                        <div className="selected-checkin-wrap">
-                            <h3>Selected Check-in Detail</h3>
-                            {isCheckinLoading ? (
-                                <p className="status-message">Loading selected check-in...</p>
-                            ) : (
-                                <pre className="health-json-view">{JSON.stringify(selectedCheckin, null, 2)}</pre>
-                            )}
-                        </div>
-                    )}
+                        {healthInfo && (
+                            <div className="health-summary">
+                                <h3>Latest Assessment</h3>
+                                <p>{healthInfo.assessment_summary || "Assessment summary not available yet."}</p>
+                                <div className="field-grid">
+                                    <div className="insight-card">
+                                        <span>Vitals</span>
+                                        <strong>
+                                            HR {healthInfo.vitals?.heart_rate_bpm} | SpO2 {healthInfo.vitals?.spo2_percent}%
+                                        </strong>
+                                    </div>
+                                    <div className="insight-card">
+                                        <span>Body Temperature</span>
+                                        <strong>{healthInfo.body_temperature_c} C</strong>
+                                    </div>
+                                    <div className="insight-card">
+                                        <span>Feeling Score</span>
+                                        <strong>{healthInfo.feeling_score}/10</strong>
+                                    </div>
+                                    <div className="insight-card">
+                                        <span>Location</span>
+                                        <strong>{[healthInfo.city, healthInfo.region, healthInfo.country].filter(Boolean).join(", ")}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {healthHistory.length > 0 && (
+                            <div className="history-table-wrap">
+                                <h3>Recent Check-ins</h3>
+                                <table className="history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Recorded</th>
+                                            <th>Risk</th>
+                                            <th>Status</th>
+                                            <th>Temp (C)</th>
+                                            <th>City</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {healthHistory.map((entry) => (
+                                            <tr key={entry.id}>
+                                                <td>{entry.recorded_at ? formatDateTime(entry.recorded_at) : "-"}</td>
+                                                <td>
+                                                    <button
+                                                        className="link-button"
+                                                        type="button"
+                                                        onClick={() => handleSelectCheckin(entry.id)}
+                                                    >
+                                                        {entry.risk_score ?? "-"}
+                                                    </button>
+                                                </td>
+                                                <td>{entry.risk_level || (entry.is_healthy ? "healthy" : "at risk")}</td>
+                                                <td>{entry.body_temperature_c ?? "-"}</td>
+                                                <td>{entry.city || "-"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {(selectedCheckin || isCheckinLoading) && (
+                            <div className="selected-checkin-wrap">
+                                <h3>Selected Check-in Detail</h3>
+                                {isCheckinLoading ? (
+                                    <p className="status-message">Loading selected check-in...</p>
+                                ) : (
+                                    <pre className="health-json-view">{JSON.stringify(selectedCheckin, null, 2)}</pre>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </section>
             )}
 

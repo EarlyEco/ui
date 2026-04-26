@@ -293,10 +293,36 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-height: calc(100vh - 170px);
 }
 
 .kpi-top-grid {
     margin-top: 4px;
+}
+
+.dashboard-top {
+    position: sticky;
+    top: 10px;
+    z-index: 4;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(4, 10, 32, 0.88);
+    border-radius: 14px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+}
+
+.dashboard-top-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dashboard-scroll {
+    max-height: calc(100vh - 360px);
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .health-json-view {
@@ -319,7 +345,7 @@ body {
 
 .filter-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr;
     gap: 10px;
     align-items: end;
 }
@@ -585,5 +611,15 @@ body {
 
     .get-calls-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .dashboard-top {
+        position: static;
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-scroll {
+        max-height: none;
+        overflow: visible;
     }
 }
