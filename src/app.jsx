@@ -6,12 +6,15 @@ import "leaflet/dist/leaflet.css";
 import { clearSessionToken, fetchMe, getSessionToken, logout } from "./api/auth";
 import {
     COMMUNITY_OVERVIEW_RADIUS_KM,
+    fetchCommunityLocationOptions,
     fetchCommunitySnapshot,
     fetchHealthCheckinById,
     fetchHealthCheckinList,
     fetchHealthSuggestions,
     fetchHealthTrend,
     fetchLatestHealthCheckin,
+    mergeCommunityLocationEntries,
+    parseLocationOptionsFromSnapshot,
     submitHealthCheckin,
 } from "./api/healthCheckins";
 import HealthCheckinModal from "./components/HealthCheckinModal";
@@ -61,6 +64,9 @@ export default function App() {
     const [mapRecenterKey, setMapRecenterKey] = useState(0);
     const [communitySnapshotData, setCommunitySnapshotData] = useState(null);
     const [communityHotspotsData, setCommunityHotspotsData] = useState([]);
+    const [communityLocationApiOptions, setCommunityLocationApiOptions] = useState(null);
+    const [communityLocationSnapshotOptions, setCommunityLocationSnapshotOptions] = useState([]);
+    const [communityMapPeersAreMock, setCommunityMapPeersAreMock] = useState(false);
     const [isCommunityLoading, setIsCommunityLoading] = useState(false);
     const [communityError, setCommunityError] = useState("");
     const [apiCallStats, setApiCallStats] = useState({
@@ -106,12 +112,24 @@ export default function App() {
         warning_level: communitySnapshotData?.warning_level || "info",
         warnings: Array.isArray(communitySnapshotData?.warnings) ? communitySnapshotData.warnings : [],
     };
-    const communityLocationCoordinates = {
-        phoenix: { lat: 33.4484, lon: -112.074, label: "Phoenix" },
-        tucson: { lat: 32.2226, lon: -110.9747, label: "Tucson" },
-    };
-    const selectedCommunityMapLocation =
-        communityLocationCoordinates[effectiveCommunityLocation] || null;
+    const communityLocationEntries = useMemo(
+        () =>
+            mergeCommunityLocationEntries(
+                Array.isArray(communityLocationApiOptions) ? communityLocationApiOptions : [],
+                communityLocationSnapshotOptions
+            ),
+        [communityLocationApiOptions, communityLocationSnapshotOptions]
+    );
+    const selectedCommunityMapLocation = useMemo(() => {
+        if (communityLocation === "all-locations") return null;
+        const entry =
+            communityLocationEntries.find((e) => e.value === communityLocation) ||
+            communityLocationEntries.find((e) => e.value === effectiveCommunityLocation);
+        if (entry && Number.isFinite(entry.lat) && Number.isFinite(entry.lon)) {
+            return { lat: entry.lat, lon: entry.lon, label: entry.label };
+        }
+        return null;
+    }, [communityLocation, communityLocationEntries, effectiveCommunityLocation]);
     const visibleCommunityHotspots = useMemo(() => {
         return communityHotspotsData;
     }, [communityHotspotsData]);
@@ -167,21 +185,65 @@ export default function App() {
         refreshCurrentLocation();
     }, []);
     useEffect(() => {
+        fetchCommunityLocationOptions()
+            .then((rows) => setCommunityLocationApiOptions(rows))
+            .catch(() => setCommunityLocationApiOptions([]));
+    }, []);
+    useEffect(() => {
+        if (communityLocation === "current-location" || communityLocation === "all-locations") return;
+        const ok = communityLocationEntries.some((e) => e.value === communityLocation);
+        if (!ok && communityLocationEntries.length > 2) {
+            setCommunityLocation("all-locations");
+        }
+    }, [communityLocation, communityLocationEntries]);
+    useEffect(() => {
+        if (!communitySnapshotData) {
+            setCommunityLocationSnapshotOptions([]);
+            return;
+        }
+        const next = parseLocationOptionsFromSnapshot(communitySnapshotData);
+        setCommunityLocationSnapshotOptions((prev) => {
+            if (
+                prev.length === next.length &&
+                next.every((n, i) => n.value === prev[i]?.value && n.label === prev[i]?.label)
+            ) {
+                return prev;
+            }
+            return next;
+        });
+    }, [communitySnapshotData]);
+    useEffect(() => {
         if (communityLocation === "current-location" && !isCommunityLocationReady) return;
 
         const loadCommunitySnapshot = async () => {
             setIsCommunityLoading(true);
             setCommunityError("");
             try {
-                const { snapshot, hotspots } = await fetchCommunitySnapshot({
+                const entriesForRequest = mergeCommunityLocationEntries(
+                    Array.isArray(communityLocationApiOptions) ? communityLocationApiOptions : [],
+                    []
+                );
+                const cityEntry = entriesForRequest.find((e) => e.value === communityLocation);
+                const cityCenterForRequest =
+                    communityLocation !== "current-location" &&
+                    communityLocation !== "all-locations" &&
+                    cityEntry &&
+                    Number.isFinite(cityEntry.lat) &&
+                    Number.isFinite(cityEntry.lon)
+                        ? { lat: cityEntry.lat, lon: cityEntry.lon }
+                        : null;
+                const { snapshot, hotspots, mapPeersAreMock } = await fetchCommunitySnapshot({
                     lookbackHours: Number(communityLookbackHours),
                     location: effectiveCommunityLocation,
                     radiusKm: COMMUNITY_OVERVIEW_RADIUS_KM,
                     ...(communityLocation === "current-location" && currentUserCoords
                         ? { latitude: currentUserCoords.lat, longitude: currentUserCoords.lon }
-                        : {}),
+                        : cityCenterForRequest
+                          ? { latitude: cityCenterForRequest.lat, longitude: cityCenterForRequest.lon }
+                          : {}),
                 });
                 setCommunitySnapshotData(snapshot || {});
+                setCommunityMapPeersAreMock(Boolean(mapPeersAreMock));
                 setCommunityHotspotsData(
                     (Array.isArray(hotspots) ? hotspots : [])
                         .map((hotspot, index) => ({
@@ -212,12 +274,22 @@ export default function App() {
                                     hotspot?.reports_count ??
                                     0
                             ),
+                            average_risk_score:
+                                typeof hotspot?.average_risk_score === "number"
+                                    ? hotspot.average_risk_score
+                                    : hotspot?.average_risk_score != null
+                                      ? Number(hotspot.average_risk_score)
+                                      : null,
+                            risk_level: hotspot?.risk_level || null,
+                            is_mock: Boolean(hotspot?.is_mock),
                         }))
                         .filter((hotspot) => Number.isFinite(hotspot.lat) && Number.isFinite(hotspot.lon))
                 );
             } catch (error) {
                 setCommunitySnapshotData(null);
+                setCommunityLocationSnapshotOptions([]);
                 setCommunityHotspotsData([]);
+                setCommunityMapPeersAreMock(false);
                 setCommunityError(error?.userMessage || "Unable to load community snapshot.");
             } finally {
                 setIsCommunityLoading(false);
@@ -228,6 +300,7 @@ export default function App() {
     }, [
         communityLookbackHours,
         communityLocation,
+        communityLocationApiOptions,
         effectiveCommunityLocation,
         currentUserCoords,
         isCommunityLocationReady,
@@ -667,10 +740,11 @@ export default function App() {
                             value={communityLocation}
                             onChange={(event) => setCommunityLocation(event.target.value)}
                         >
-                            <option value="current-location">Current Location</option>
-                            <option value="all-locations">All Locations</option>
-                            <option value="phoenix">Phoenix</option>
-                            <option value="tucson">Tucson</option>
+                            {communityLocationEntries.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
                         </select>
                     </label>
                     <span className={`community-warning-pill ${toneClassForSeverity(communitySnapshot.warning_level)}`}>
@@ -817,6 +891,13 @@ export default function App() {
                 </div>
                 <div className="community-chart-card community-map-card">
                     <h3>Location Map</h3>
+                    {communityMapPeersAreMock && (
+                        <p className="community-map-mock-banner" role="status">
+                            Demo mode: nine sample peer pins stand in until the API returns real{" "}
+                            <code className="inline-code">hotspots</code> or GeoJSON coordinates. Positions are
+                            illustrative only.
+                        </p>
+                    )}
                     <div className="community-live-map-wrap">
                         <button
                             type="button"
@@ -873,15 +954,39 @@ export default function App() {
                                         <Tooltip direction="top" offset={[0, -8]} opacity={0.96}>
                                             <div className="map-hotspot-tooltip">
                                                 <strong>{hotspot.label}</strong>
-                                                <span>Reported cases: {hotspot.cases}</span>
+                                                <span>
+                                                    {hotspot.is_mock ? "Illustrative · " : ""}
+                                                    Reports in area: {hotspot.cases}
+                                                    {Number.isFinite(hotspot.average_risk_score) ? (
+                                                        <> · Avg risk {hotspot.average_risk_score.toFixed(1)}</>
+                                                    ) : null}
+                                                </span>
                                             </div>
                                         </Tooltip>
                                         <Popup>
                                             <strong>{hotspot.label}</strong>
                                             <br />
                                             Severity: {hotspot.severity}
+                                            {hotspot.risk_level ? (
+                                                <>
+                                                    <br />
+                                                    Risk level: {hotspot.risk_level}
+                                                </>
+                                            ) : null}
+                                            {Number.isFinite(hotspot.average_risk_score) ? (
+                                                <>
+                                                    <br />
+                                                    Avg risk (cluster): {hotspot.average_risk_score.toFixed(1)}
+                                                </>
+                                            ) : null}
                                             <br />
-                                            Reported cases: {hotspot.cases}
+                                            {hotspot.is_mock ? (
+                                                <>
+                                                    Illustrative demo placement (not a real user location).
+                                                    <br />
+                                                </>
+                                            ) : null}
+                                            Reports in area: {hotspot.cases}
                                         </Popup>
                                     </CircleMarker>
                                 );
@@ -918,10 +1023,11 @@ export default function App() {
                     </div>
                     {visibleCommunityHotspots.length === 0 && (
                         <p className="community-map-empty-hint">
-                            Other check-ins appear when the overview includes map pins (for example{" "}
-                            <code className="inline-code">hotspots</code> with <code className="inline-code">lat</code>{" "}
-                            / <code className="inline-code">lon</code>). Use <strong>Current Location</strong> so the
-                            request sends your coordinates and the API can return nearby clusters.
+                            Pins need coordinates from the API: arrays like <code className="inline-code">hotspots</code>
+                            , <code className="inline-code">GeoJSON</code> <code className="inline-code">features</code>
+                            , or a <code className="inline-code">GET …/map-points</code> response. The UI sends{" "}
+                            <strong>your GPS</strong> for Current Location and <strong>city center</strong> for
+                            Phoenix/Tucson so the backend can attach nearby anonymized points.
                         </p>
                     )}
                 </div>
