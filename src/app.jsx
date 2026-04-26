@@ -117,7 +117,7 @@ export default function App() {
             await loadHealthDashboard();
         } catch (error) {
             setHealthSubmitMessage(`❌ ${error?.userMessage || "Unable to save health details right now."}`);
-            throw error;
+            return;
         } finally {
             setIsSubmittingHealth(false);
         }
