@@ -307,16 +307,19 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(4, 10, 32, 0.88);
     border-radius: 14px;
-    padding: 12px;
+    padding: 10px;
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1.8fr 1fr;
+    gap: 0;
+    max-width: 980px;
 }
 
 .dashboard-top-right {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dashboard-scroll {
