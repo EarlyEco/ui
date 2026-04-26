@@ -1545,8 +1545,8 @@ body {
 
 .suggestions-fab {
     position: fixed;
-    right: 16px;
-    bottom: 16px;
+    right: 48px;
+    bottom: 28px;
     z-index: 45;
     width: 72px;
     height: 72px;
