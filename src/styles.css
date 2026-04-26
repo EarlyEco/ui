@@ -179,12 +179,25 @@ body {
     transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
+.field select {
+    width: 100%;
+    border: 1px solid rgba(165, 185, 245, 0.35);
+    border-radius: 10px;
+    background: rgba(7, 16, 46, 0.8);
+    color: #f4f7ff;
+    padding: 10px 12px;
+}
+
 .section-title {
     margin-top: 8px;
     font-size: 0.86rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #8fd5ff;
+}
+
+.inline-actions {
+    margin-top: -2px;
 }
 
 .checkbox-field {
@@ -225,6 +238,12 @@ body {
 }
 
 .field textarea:focus {
+    outline: none;
+    border-color: #5ec6ff;
+    box-shadow: 0 0 0 3px rgba(94, 198, 255, 0.2);
+}
+
+.field select:focus {
     outline: none;
     border-color: #5ec6ff;
     box-shadow: 0 0 0 3px rgba(94, 198, 255, 0.2);

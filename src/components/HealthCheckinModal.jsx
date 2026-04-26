@@ -51,6 +51,29 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
         }
     };
 
+    const handleUseCurrentLocation = () => {
+        setLocalError("");
+        if (!navigator.geolocation) {
+            setLocalError("Location service is not available in this browser.");
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setForm((prev) => ({
+                    ...prev,
+                    latitude: Number(position.coords.latitude.toFixed(6)),
+                    longitude: Number(position.coords.longitude.toFixed(6)),
+                    location_accuracy_m: Math.round(position.coords.accuracy || prev.location_accuracy_m),
+                    location_source: "gps",
+                }));
+            },
+            () => {
+                setLocalError("Could not get your current location. You can still type location manually.");
+            }
+        );
+    };
+
     return (
         <div className="modal-overlay" role="dialog" aria-modal="true">
             <div className="modal-card">
@@ -67,6 +90,11 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
 
                 <form onSubmit={handleSubmit} className="auth-form">
                     <div className="section-title">Location</div>
+                    <div className="inline-actions">
+                        <button type="button" className="ghost-button" onClick={handleUseCurrentLocation}>
+                            Use Current Location
+                        </button>
+                    </div>
                     <div className="field-grid">
                         <label className="field">
                             <span>Latitude</span>
@@ -91,6 +119,18 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                         <label className="field">
                             <span>Neighborhood</span>
                             <input value={form.neighborhood} onChange={(e) => setTopLevel("neighborhood", e.target.value)} />
+                        </label>
+                        <label className="field">
+                            <span>Location Accuracy (m)</span>
+                            <input type="number" value={form.location_accuracy_m} onChange={(e) => setTopLevel("location_accuracy_m", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Location Source</span>
+                            <select value={form.location_source} onChange={(e) => setTopLevel("location_source", e.target.value)}>
+                                <option value="manual">manual</option>
+                                <option value="gps">gps</option>
+                                <option value="network">network</option>
+                            </select>
                         </label>
                     </div>
 
@@ -120,6 +160,26 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                             <span>Headache Severity</span>
                             <input type="number" value={form.symptom_severities.headache} onChange={(e) => setNested("symptom_severities", "headache", onNumber(e.target.value))} />
                         </label>
+                        <label className="field">
+                            <span>Body Aches Severity</span>
+                            <input type="number" value={form.symptom_severities.body_aches} onChange={(e) => setNested("symptom_severities", "body_aches", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Fatigue Severity</span>
+                            <input type="number" value={form.symptom_severities.fatigue} onChange={(e) => setNested("symptom_severities", "fatigue", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Nausea Severity</span>
+                            <input type="number" value={form.symptom_severities.nausea} onChange={(e) => setNested("symptom_severities", "nausea", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Congestion Severity</span>
+                            <input type="number" value={form.symptom_severities.congestion} onChange={(e) => setNested("symptom_severities", "congestion", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Shortness of Breath Severity</span>
+                            <input type="number" value={form.symptom_severities.shortness_of_breath} onChange={(e) => setNested("symptom_severities", "shortness_of_breath", onNumber(e.target.value))} />
+                        </label>
                     </div>
 
                     <div className="section-title">Vitals and Wellness</div>
@@ -137,6 +197,14 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                             <input type="number" value={form.vitals.respiratory_rate_bpm} onChange={(e) => setNested("vitals", "respiratory_rate_bpm", onNumber(e.target.value))} />
                         </label>
                         <label className="field">
+                            <span>BP Systolic</span>
+                            <input type="number" value={form.vitals.blood_pressure_systolic} onChange={(e) => setNested("vitals", "blood_pressure_systolic", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>BP Diastolic</span>
+                            <input type="number" value={form.vitals.blood_pressure_diastolic} onChange={(e) => setNested("vitals", "blood_pressure_diastolic", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
                             <span>Sleep Hours</span>
                             <input type="number" value={form.wellness.sleep_hours} onChange={(e) => setNested("wellness", "sleep_hours", onNumber(e.target.value))} />
                         </label>
@@ -147,6 +215,10 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                         <label className="field">
                             <span>Stress Level Score</span>
                             <input type="number" value={form.wellness.stress_level_score} onChange={(e) => setNested("wellness", "stress_level_score", onNumber(e.target.value))} />
+                        </label>
+                        <label className="field">
+                            <span>Hydration Level Score</span>
+                            <input type="number" value={form.wellness.hydration_level_score} onChange={(e) => setNested("wellness", "hydration_level_score", onNumber(e.target.value))} />
                         </label>
                     </div>
 
@@ -159,6 +231,10 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                         <label className="field">
                             <span>Travel Notes</span>
                             <input value={form.exposure.travel_notes} onChange={(e) => setNested("exposure", "travel_notes", e.target.value)} />
+                        </label>
+                        <label className="field">
+                            <span>Animal Contact Notes</span>
+                            <input value={form.exposure.animal_contact_notes} onChange={(e) => setNested("exposure", "animal_contact_notes", e.target.value)} />
                         </label>
                         <label className="field checkbox-field">
                             <span>Mask Worn</span>
@@ -176,6 +252,18 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                             <span>Tested Positive Recently</span>
                             <input type="checkbox" checked={form.testing.tested_positive_recently} onChange={(e) => setNested("testing", "tested_positive_recently", e.target.checked)} />
                         </label>
+                        <label className="field checkbox-field">
+                            <span>Animal Contact</span>
+                            <input type="checkbox" checked={form.exposure.animal_contact} onChange={(e) => setNested("exposure", "animal_contact", e.target.checked)} />
+                        </label>
+                        <label className="field">
+                            <span>Test Type</span>
+                            <input value={form.testing.test_type} onChange={(e) => setNested("testing", "test_type", e.target.value)} />
+                        </label>
+                        <label className="field">
+                            <span>Test Result</span>
+                            <input value={form.testing.test_result} onChange={(e) => setNested("testing", "test_result", e.target.value)} />
+                        </label>
                     </div>
 
                     <div className="section-title">Other Details</div>
@@ -191,6 +279,10 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                         <label className="field">
                             <span>Special Notices</span>
                             <input value={form.special_notices} onChange={(e) => setTopLevel("special_notices", e.target.value)} />
+                        </label>
+                        <label className="field">
+                            <span>Medication Notes</span>
+                            <input value={form.recent_medications_notes} onChange={(e) => setTopLevel("recent_medications_notes", e.target.value)} />
                         </label>
                         <label className="field">
                             <span>Recorded At</span>
