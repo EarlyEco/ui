@@ -57,6 +57,7 @@ export default function App() {
     const [communityLocation, setCommunityLocation] = useState("current-location");
     const [detectedCommunityLabel, setDetectedCommunityLabel] = useState("Current location");
     const [currentUserCoords, setCurrentUserCoords] = useState(null);
+    const [isCommunityLocationReady, setIsCommunityLocationReady] = useState(false);
     const [mapRecenterKey, setMapRecenterKey] = useState(0);
     const [communitySnapshotData, setCommunitySnapshotData] = useState(null);
     const [communityHotspotsData, setCommunityHotspotsData] = useState([]);
@@ -111,8 +112,10 @@ export default function App() {
     }, [communityLocation, currentUserCoords, effectiveCommunityLocation]);
 
     const refreshCurrentLocation = () => {
+        setIsCommunityLocationReady(false);
         if (!navigator.geolocation) {
             setDetectedCommunityLabel("all-locations");
+            setIsCommunityLocationReady(true);
             return;
         }
 
@@ -129,11 +132,13 @@ export default function App() {
                 } else {
                     setDetectedCommunityLabel("tucson");
                 }
+                setIsCommunityLocationReady(true);
                 setMapRecenterKey((prev) => prev + 1);
             },
             () => {
                 setDetectedCommunityLabel("all-locations");
                 setCurrentUserCoords(null);
+                setIsCommunityLocationReady(true);
             },
             { maximumAge: 300000, timeout: 5000, enableHighAccuracy: false }
         );
@@ -143,16 +148,15 @@ export default function App() {
         refreshCurrentLocation();
     }, []);
     useEffect(() => {
+        if (communityLocation === "current-location" && !isCommunityLocationReady) return;
+
         const loadCommunitySnapshot = async () => {
             setIsCommunityLoading(true);
             setCommunityError("");
             try {
-                const useCoordinates = communityLocation === "current-location" && currentUserCoords;
                 const { snapshot, hotspots } = await fetchCommunitySnapshot({
                     lookbackHours: Number(communityLookbackHours),
                     location: effectiveCommunityLocation,
-                    latitude: useCoordinates ? Number(currentUserCoords.lat) : undefined,
-                    longitude: useCoordinates ? Number(currentUserCoords.lon) : undefined,
                     radiusKm: 5,
                 });
                 setCommunitySnapshotData(snapshot || {});
@@ -178,7 +182,13 @@ export default function App() {
         };
 
         loadCommunitySnapshot();
-    }, [communityLookbackHours, communityLocation, effectiveCommunityLocation, currentUserCoords]);
+    }, [
+        communityLookbackHours,
+        communityLocation,
+        effectiveCommunityLocation,
+        currentUserCoords,
+        isCommunityLocationReady,
+    ]);
     const communityRiskBreakdownBars = useMemo(() => {
         const breakdown = communitySnapshot.risk_breakdown || {};
         const entries = [

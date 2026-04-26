@@ -220,56 +220,28 @@ export const fetchCommunitySnapshot = async ({
             radius_km: String(radiusKm),
         });
 
-    const fetchOverview = async (params) => {
-        const url = `/api/v1/community-health/overview?${params.toString()}`;
-        const response = await fetch(url, {
-            headers: { accept: "application/json" },
-        });
-        if (!response.ok) {
-            return { ok: false, status: response.status, response };
-        }
-        const snapshot = await response.json();
-        const hotspots = snapshot?.hotspots || snapshot?.risk_hotspots || [];
-        return {
-            ok: true,
-            snapshot,
-            hotspots: Array.isArray(hotspots) ? hotspots : [],
-        };
-    };
-
     try {
         const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
         const cityFromLocation = cityQueryFromLocation(location);
+        const params = baseParams();
 
         if (hasCoordinates) {
-            const withCoords = baseParams();
-            withCoords.set("latitude", String(latitude));
-            withCoords.set("longitude", String(longitude));
-            let result = await fetchOverview(withCoords);
-            if (result.ok) return { snapshot: result.snapshot, hotspots: result.hotspots };
-
-            if (result.status === 404 && cityFromLocation) {
-                const withCity = baseParams();
-                withCity.set("city", cityFromLocation);
-                result = await fetchOverview(withCity);
-                if (result.ok) return { snapshot: result.snapshot, hotspots: result.hotspots };
-            }
+            params.set("latitude", String(latitude));
+            params.set("longitude", String(longitude));
         } else if (location && location !== "all-locations" && location !== "current-location") {
-            const city = cityQueryFromLocation(location) || String(location);
-            const withCity = baseParams();
-            withCity.set("city", city);
-            const result = await fetchOverview(withCity);
-            if (result.ok) return { snapshot: result.snapshot, hotspots: result.hotspots };
+            params.set("city", cityQueryFromLocation(location) || String(location));
+        } else if (cityFromLocation) {
+            params.set("city", cityFromLocation);
         }
 
-        const globalResult = await fetchOverview(baseParams());
-        if (globalResult.ok) return { snapshot: globalResult.snapshot, hotspots: globalResult.hotspots };
-
-        await readJsonOrThrow(globalResult.response, "Could not fetch community snapshot.");
+        const response = await fetch(`/api/v1/community-health/overview?${params.toString()}`, {
+            headers: { accept: "application/json" },
+        });
+        const snapshot = await readJsonOrThrow(response, "Could not fetch community snapshot.");
+        const hotspots = snapshot?.hotspots || snapshot?.risk_hotspots || [];
+        return { snapshot, hotspots: Array.isArray(hotspots) ? hotspots : [] };
     } catch (error) {
         if (error?.userMessage) throw error;
         throw createError("Failed to fetch", "Could not fetch community snapshot.");
     }
-
-    throw createError("Failed to fetch", "Could not fetch community snapshot.");
 };
