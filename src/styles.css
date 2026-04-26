@@ -1736,6 +1736,18 @@ body {
 }
 
 @media (max-width: 900px) {
+    .health-panel {
+        height: auto;
+        min-height: auto;
+        overflow: visible;
+        gap: 10px;
+    }
+
+    .dashboard-scroll {
+        overflow-y: visible;
+        max-height: none;
+    }
+
     .landing-feature-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1805,17 +1817,17 @@ body {
     }
 
     .insight-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
     }
 
     .kpi-top-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 8px;
     }
 
     .kpi-top-grid .insight-card {
         border-radius: 12px;
-        border-right: 1px solid rgba(255, 255, 255, 0.14);
+        border-right: none;
     }
 
     .bar-chart {
@@ -1832,7 +1844,7 @@ body {
     }
 
     .get-calls-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
     }
 
     .dashboard-top {
@@ -1843,6 +1855,13 @@ body {
     .dashboard-top-right {
         justify-content: flex-start;
         margin-top: 6px;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .dashboard-top-right > .primary-button,
+    .dashboard-top-right > .ghost-button {
+        width: 100%;
     }
 
     .page-top-actions {
@@ -1886,5 +1905,33 @@ body {
     .toast-stack {
         top: auto;
         bottom: 92px;
+    }
+}
+
+@media (max-width: 430px) {
+    .app-shell {
+        padding: 6px;
+    }
+
+    .main-page-title {
+        font-size: 1.15rem;
+        margin-bottom: 8px;
+    }
+
+    .card-heading p,
+    .landing-subtitle,
+    .community-home-subtitle {
+        font-size: 0.82rem;
+    }
+
+    .mini-field input,
+    .mini-field select,
+    .field input,
+    .field select {
+        font-size: 16px;
+    }
+
+    .history-table {
+        min-width: 560px;
     }
 }
