@@ -2,6 +2,8 @@ import { authFetch } from "./auth";
 
 const BASE_URL = __BE_BASE_URL__;
 const USERS_API_BASE = import.meta.env.DEV ? "/api/v1/users" : `${BASE_URL}/api/v1/users`;
+/** Same-origin /api proxy in dev; full backend URL in production (set BE_BASE_URL at build time). */
+const apiRootPrefix = import.meta.env.DEV ? "" : BASE_URL;
 
 export const DEFAULT_HEALTH_CHECKIN = {
     latitude: 32.2226,
@@ -129,7 +131,9 @@ const readJsonOrThrow = async (response, fallbackMessage) => {
     } catch {
         // keep fallback
     }
-    throw createError(detail, detail);
+    const error = createError(detail, detail);
+    error.status = response.status;
+    throw error;
 };
 
 export const fetchLatestHealthCheckin = async () => {
@@ -137,6 +141,7 @@ export const fetchLatestHealthCheckin = async () => {
         const response = await authFetch(`${USERS_API_BASE}/self/health-checkins/latest`, {
             headers: { accept: "application/json" },
         });
+        if (response.status === 404) return null;
         return await readJsonOrThrow(response, "Could not fetch latest health check-in.");
     } catch (error) {
         if (error?.userMessage) throw error;
@@ -234,7 +239,7 @@ export const fetchCommunitySnapshot = async ({
             params.set("city", cityFromLocation);
         }
 
-        const response = await fetch(`/api/v1/community-health/overview?${params.toString()}`, {
+        const response = await fetch(`${apiRootPrefix}/api/v1/community-health/overview?${params.toString()}`, {
             headers: { accept: "application/json" },
         });
         const snapshot = await readJsonOrThrow(response, "Could not fetch community snapshot.");

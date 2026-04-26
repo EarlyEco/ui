@@ -397,8 +397,8 @@ export default function App() {
             const untilIso = untilFilter ? new Date(`${untilFilter}T23:59:59`).toISOString() : undefined;
             const [latest, trend, history] = await Promise.all([
                 fetchLatestHealthCheckin(),
-                fetchHealthTrend(30),
-                fetchHealthCheckinList({ limit: 30, since: sinceIso, until: untilIso }),
+                fetchHealthTrend(30).catch(() => null),
+                fetchHealthCheckinList({ limit: 30, since: sinceIso, until: untilIso }).catch(() => []),
             ]);
             setApiCallStats((prev) => ({
                 ...prev,
@@ -406,11 +406,15 @@ export default function App() {
                 trend: prev.trend + 1,
                 list: prev.list + 1,
             }));
-            setHealthInfo({
-                ...latest,
-                recorded_at: normalizeTimestamp(latest?.recorded_at),
-                assessed_at: normalizeTimestamp(latest?.assessed_at),
-            });
+            if (latest) {
+                setHealthInfo({
+                    ...latest,
+                    recorded_at: normalizeTimestamp(latest?.recorded_at),
+                    assessed_at: normalizeTimestamp(latest?.assessed_at),
+                });
+            } else {
+                setHealthInfo(null);
+            }
             setHealthTrend(trend);
             setHealthHistory(
                 Array.isArray(history)
