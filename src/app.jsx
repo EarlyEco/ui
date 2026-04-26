@@ -1,10 +1,11 @@
 import Signup from "./components/Signup";
 import { useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { clearSessionToken, fetchMe, getSessionToken, logout } from "./api/auth";
 import {
+    COMMUNITY_OVERVIEW_RADIUS_KM,
     fetchCommunitySnapshot,
     fetchHealthCheckinById,
     fetchHealthCheckinList,
@@ -70,17 +71,36 @@ export default function App() {
     });
     const effectiveCommunityLocation =
         communityLocation === "current-location" ? detectedCommunityLabel : communityLocation;
+    const formatCommunityLocationLabel = (raw) => {
+        const key = String(raw || "")
+            .trim()
+            .toLowerCase()
+            .replace(/_/g, "-");
+        if (!key) return "";
+        if (key === "all-locations") return "All locations";
+        if (key === "current-location") return "Current location";
+        if (key === "phoenix") return "Phoenix";
+        if (key === "tucson") return "Tucson";
+        return String(raw).trim();
+    };
     const communitySnapshot = {
-        location_label: communitySnapshotData?.location_label || effectiveCommunityLocation,
+        location_label:
+            formatCommunityLocationLabel(communitySnapshotData?.location_label) ||
+            formatCommunityLocationLabel(effectiveCommunityLocation) ||
+            "—",
         lookback_hours: Number(communitySnapshotData?.lookback_hours || communityLookbackHours),
         total_reports: Number(communitySnapshotData?.total_reports || 0),
+        healthy_reports: Number(communitySnapshotData?.healthy_reports || 0),
         unhealthy_reports: Number(communitySnapshotData?.unhealthy_reports || 0),
+        pending_reports: Number(communitySnapshotData?.pending_reports || 0),
+        unique_users: Number(communitySnapshotData?.unique_users || 0),
         unhealthy_ratio: Number(communitySnapshotData?.unhealthy_ratio || 0),
         average_risk_score: Number(communitySnapshotData?.average_risk_score || 0),
         risk_breakdown: {
             low: Number(communitySnapshotData?.risk_breakdown?.low || 0),
             moderate: Number(communitySnapshotData?.risk_breakdown?.moderate || 0),
             high: Number(communitySnapshotData?.risk_breakdown?.high || 0),
+            unknown: Number(communitySnapshotData?.risk_breakdown?.unknown || 0),
         },
         top_symptoms: Array.isArray(communitySnapshotData?.top_symptoms) ? communitySnapshotData.top_symptoms : [],
         warning_level: communitySnapshotData?.warning_level || "info",
@@ -156,7 +176,10 @@ export default function App() {
                 const { snapshot, hotspots } = await fetchCommunitySnapshot({
                     lookbackHours: Number(communityLookbackHours),
                     location: effectiveCommunityLocation,
-                    radiusKm: 5,
+                    radiusKm: COMMUNITY_OVERVIEW_RADIUS_KM,
+                    ...(communityLocation === "current-location" && currentUserCoords
+                        ? { latitude: currentUserCoords.lat, longitude: currentUserCoords.lon }
+                        : {}),
                 });
                 setCommunitySnapshotData(snapshot || {});
                 setCommunityHotspotsData(
@@ -164,10 +187,31 @@ export default function App() {
                         .map((hotspot, index) => ({
                             id: hotspot?.id || `hotspot-${index}`,
                             lat: Number(hotspot?.lat ?? hotspot?.latitude),
-                            lon: Number(hotspot?.lon ?? hotspot?.longitude),
-                            severity: hotspot?.severity || "warning",
-                            label: hotspot?.label || hotspot?.name || "Unknown location",
-                            cases: Number(hotspot?.cases ?? hotspot?.reported_cases ?? 0),
+                            lon: Number(hotspot?.lon ?? hotspot?.longitude ?? hotspot?.lng),
+                            severity:
+                                hotspot?.severity ||
+                                (String(hotspot?.risk_level || "")
+                                    .toLowerCase()
+                                    .includes("high")
+                                    ? "critical"
+                                    : String(hotspot?.risk_level || "")
+                                            .toLowerCase()
+                                            .includes("low")
+                                      ? "info"
+                                      : "warning"),
+                            label:
+                                hotspot?.label ||
+                                hotspot?.name ||
+                                hotspot?.city ||
+                                hotspot?.neighborhood ||
+                                "Anonymous check-in area",
+                            cases: Number(
+                                hotspot?.cases ??
+                                    hotspot?.reported_cases ??
+                                    hotspot?.count ??
+                                    hotspot?.reports_count ??
+                                    0
+                            ),
                         }))
                         .filter((hotspot) => Number.isFinite(hotspot.lat) && Number.isFinite(hotspot.lon))
                 );
@@ -194,6 +238,7 @@ export default function App() {
             { key: "low", label: "Low", value: Number(breakdown.low || 0), tone: "good" },
             { key: "moderate", label: "Moderate", value: Number(breakdown.moderate || 0), tone: "warning" },
             { key: "high", label: "High", value: Number(breakdown.high || 0), tone: "critical" },
+            { key: "unknown", label: "Unknown", value: Number(breakdown.unknown || 0), tone: "neutral" },
         ];
         const maxValue = Math.max(...entries.map((item) => item.value), 1);
         return entries.map((item) => ({
@@ -201,6 +246,17 @@ export default function App() {
             widthPercent: (item.value / maxValue) * 100,
         }));
     }, [communitySnapshot]);
+    const communityHealthRatioDisplay = useMemo(() => {
+        const raw = Number(communitySnapshot.unhealthy_ratio);
+        const ratio = Number.isFinite(raw) ? Math.min(1, Math.max(0, raw)) : 0;
+        const unhealthyPct = ratio * 100;
+        const healthyPct = (1 - ratio) * 100;
+        return {
+            unhealthyPct,
+            healthyPct,
+            splitDeg: ratio * 360,
+        };
+    }, [communitySnapshot.unhealthy_ratio]);
     const currentYear = useMemo(() => new Date().getFullYear(), []);
     const normalizeTimestamp = (value) => {
         if (typeof value !== "string") return value;
@@ -210,22 +266,54 @@ export default function App() {
         const parsed = new Date(normalizeTimestamp(value));
         return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString();
     };
+    const toneFromHistoryRiskLevel = (levelRaw) => {
+        const level = String(levelRaw || "").toLowerCase();
+        if (!level.trim()) return null;
+        if (level.includes("high") || level.includes("critical") || level.includes("severe")) return "critical";
+        if (level.includes("medium") || level.includes("moderate") || level.includes("warn")) return "warning";
+        if (level.includes("at risk") || level.includes("at_risk") || level.includes("elevated")) return "warning";
+        if (
+            level.includes("low") ||
+            level.includes("healthy") ||
+            level.includes("minimal") ||
+            level.includes("safe") ||
+            level.includes("good")
+        ) {
+            return "safe";
+        }
+        return null;
+    };
+    const toneFromHistoryRiskScore = (score) => {
+        if (!Number.isFinite(score)) return "safe";
+        if (score >= 66) return "critical";
+        if (score >= 33) return "warning";
+        return "safe";
+    };
     const riskChartData = useMemo(() => {
         const normalized = [...healthHistory]
-            .filter((entry) => entry?.recorded_at && typeof entry?.risk_score === "number")
+            .filter((entry) => {
+                if (!entry?.recorded_at) return false;
+                const score = Number(entry?.risk_score ?? entry?.riskScore);
+                return Number.isFinite(score);
+            })
             .sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
         if (!normalized.length) return { bars: [] };
 
-        const maxRisk = Math.max(...normalized.map((item) => item.risk_score), 1);
+        const numericScores = normalized.map((item) => Number(item.risk_score ?? item.riskScore));
+        const maxRisk = Math.max(...numericScores, 1);
         const maxX = normalized.length - 1;
+        const treatScoresAsZeroToOne = maxRisk <= 1.5 && numericScores.every((s) => s <= 1.5);
+
         const bars = normalized.map((item, idx) => {
-            const normalizedRisk = item.risk_score / maxRisk;
-            let tone = "safe";
-            if (normalizedRisk >= 0.75) tone = "critical";
-            else if (normalizedRisk >= 0.5) tone = "warning";
+            const score = Number(item.risk_score ?? item.riskScore);
+            const normalizedRisk = score / maxRisk;
+            const scoreForTone = treatScoresAsZeroToOne ? score * 100 : score;
+            const levelTone = toneFromHistoryRiskLevel(item.risk_level ?? item.riskLevel);
+            const tone = levelTone ?? toneFromHistoryRiskScore(scoreForTone);
             return {
-                id: item.id,
-                risk: item.risk_score,
+                id: item.id ?? `risk-${idx}`,
+                risk: score,
+                riskLevel: item.risk_level || item.riskLevel || "",
                 recordedAt: item.recorded_at,
                 height: Math.max(8, normalizedRisk * 100),
                 xPercent: maxX > 0 ? (idx / maxX) * 100 : 50,
@@ -613,12 +701,39 @@ export default function App() {
                     <strong>{(communitySnapshot.unhealthy_ratio * 100).toFixed(1)}%</strong>
                 </div>
             </div>
+            <div className="community-kpi-grid community-kpi-grid-secondary">
+                <div className="insight-card tone-good">
+                    <span>Healthy Reports</span>
+                    <strong>{communitySnapshot.healthy_reports}</strong>
+                </div>
+                <div className="insight-card tone-info">
+                    <span>Pending Assessment</span>
+                    <strong>{communitySnapshot.pending_reports}</strong>
+                </div>
+                <div className="insight-card tone-neutral">
+                    <span>Unique Users</span>
+                    <strong>{communitySnapshot.unique_users}</strong>
+                </div>
+            </div>
             <div className="community-detail-grid">
                 <div className="community-detail-card">
                     <h3>Risk Breakdown</h3>
-                    <p>Low: {communitySnapshot.risk_breakdown.low}</p>
-                    <p>Moderate: {communitySnapshot.risk_breakdown.moderate}</p>
-                    <p>High: {communitySnapshot.risk_breakdown.high}</p>
+                    <p>
+                        Low:{" "}
+                        <strong className="community-stat-num">{communitySnapshot.risk_breakdown.low}</strong>
+                    </p>
+                    <p>
+                        Moderate:{" "}
+                        <strong className="community-stat-num">{communitySnapshot.risk_breakdown.moderate}</strong>
+                    </p>
+                    <p>
+                        High:{" "}
+                        <strong className="community-stat-num">{communitySnapshot.risk_breakdown.high}</strong>
+                    </p>
+                    <p>
+                        Unknown:{" "}
+                        <strong className="community-stat-num">{communitySnapshot.risk_breakdown.unknown}</strong>
+                    </p>
                 </div>
                 <div className="community-detail-card">
                     <h3>Top Symptoms</h3>
@@ -662,22 +777,41 @@ export default function App() {
                         <div className="community-ratio-wrap">
                             <div
                                 className="community-ratio-donut"
+                                role="img"
+                                aria-label={`Healthy ${communityHealthRatioDisplay.healthyPct.toFixed(1)} percent, unhealthy ${communityHealthRatioDisplay.unhealthyPct.toFixed(1)} percent of assessed reports`}
                                 style={{
                                     background: `conic-gradient(
-                                        #f59e0b 0 ${(communitySnapshot.unhealthy_ratio * 360).toFixed(2)}deg,
-                                        #22c55e ${(communitySnapshot.unhealthy_ratio * 360).toFixed(2)}deg 360deg
+                                        #f59e0b 0deg ${communityHealthRatioDisplay.splitDeg.toFixed(2)}deg,
+                                        #22c55e ${communityHealthRatioDisplay.splitDeg.toFixed(2)}deg 360deg
                                     )`,
                                 }}
                             >
                                 <div className="community-ratio-center">
-                                    <strong>{(communitySnapshot.unhealthy_ratio * 100).toFixed(1)}%</strong>
-                                    <span>Unhealthy</span>
+                                    <div className="community-ratio-center-stats">
+                                        <div className="community-ratio-stat-row community-ratio-stat-healthy">
+                                            <strong>{communityHealthRatioDisplay.healthyPct.toFixed(1)}%</strong>
+                                            <span>Healthy</span>
+                                        </div>
+                                        <div className="community-ratio-stat-row community-ratio-stat-unhealthy">
+                                            <strong>{communityHealthRatioDisplay.unhealthyPct.toFixed(1)}%</strong>
+                                            <span>Unhealthy</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div className="community-ratio-legend">
-                                <span><i className="legend-dot unhealthy" /> Unhealthy</span>
-                                <span><i className="legend-dot healthy" /> Healthy</span>
+                                <span>
+                                    <i className="legend-dot healthy" aria-hidden="true" />
+                                    Healthy {communityHealthRatioDisplay.healthyPct.toFixed(1)}%
+                                </span>
+                                <span>
+                                    <i className="legend-dot unhealthy" aria-hidden="true" />
+                                    Unhealthy {communityHealthRatioDisplay.unhealthyPct.toFixed(1)}%
+                                </span>
                             </div>
+                            <p className="community-ratio-caption">
+                                Share of reports with a completed assessment in this window.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -703,6 +837,25 @@ export default function App() {
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
+                            {communityLocation === "current-location" && currentUserCoords && (
+                                <Circle
+                                    center={[currentUserCoords.lat, currentUserCoords.lon]}
+                                    radius={COMMUNITY_OVERVIEW_RADIUS_KM * 1000}
+                                    pathOptions={{
+                                        color: "#60a5fa",
+                                        fillColor: "#3b82f6",
+                                        fillOpacity: 0.06,
+                                        weight: 1,
+                                        dashArray: "6 8",
+                                    }}
+                                >
+                                    <Tooltip direction="bottom" offset={[0, 6]} opacity={0.92}>
+                                        <span className="map-radius-tooltip">
+                                            Overview uses a {COMMUNITY_OVERVIEW_RADIUS_KM} km radius from you
+                                        </span>
+                                    </Tooltip>
+                                </Circle>
+                            )}
                             {visibleCommunityHotspots.map((hotspot) => {
                                 const hotspotStyle =
                                     hotspot.severity === "critical"
@@ -757,7 +910,20 @@ export default function App() {
                         <span><i className="legend-dot warning-dot" /> Medium Risk</span>
                         <span><i className="legend-dot healthy" /> Low Risk</span>
                         <span><i className="legend-dot user-dot" /> You</span>
+                        {communityLocation === "current-location" && currentUserCoords && (
+                            <span>
+                                <i className="legend-dot radius-dot" /> {COMMUNITY_OVERVIEW_RADIUS_KM} km radius
+                            </span>
+                        )}
                     </div>
+                    {visibleCommunityHotspots.length === 0 && (
+                        <p className="community-map-empty-hint">
+                            Other check-ins appear when the overview includes map pins (for example{" "}
+                            <code className="inline-code">hotspots</code> with <code className="inline-code">lat</code>{" "}
+                            / <code className="inline-code">lon</code>). Use <strong>Current Location</strong> so the
+                            request sends your coordinates and the API can return nearby clusters.
+                        </p>
+                    )}
                 </div>
             </div>
             <div className="community-warning-list">
@@ -971,8 +1137,8 @@ export default function App() {
                                                 onMouseEnter={() => setHoveredRiskPoint(bar)}
                                                 onFocus={() => setHoveredRiskPoint(bar)}
                                                 onClick={() => handleSelectCheckin(bar.id)}
-                                                aria-label={`Risk ${bar.risk} at ${formatDateTime(bar.recordedAt)}`}
-                                                title={`${formatDateTime(bar.recordedAt)} | Risk ${bar.risk}`}
+                                                aria-label={`Risk ${bar.risk}${bar.riskLevel ? `, ${bar.riskLevel}` : ""} at ${formatDateTime(bar.recordedAt)}`}
+                                                title={`${formatDateTime(bar.recordedAt)} | Risk ${bar.risk}${bar.riskLevel ? ` (${bar.riskLevel})` : ""}`}
                                             />
                                         ))}
                                     </div>
@@ -984,7 +1150,12 @@ export default function App() {
                                                 top: "14%",
                                             }}
                                         >
-                                            <strong>Risk: {hoveredRiskPoint.risk}</strong>
+                                            <strong>
+                                                Risk: {hoveredRiskPoint.risk}
+                                                {hoveredRiskPoint.riskLevel
+                                                    ? ` (${hoveredRiskPoint.riskLevel})`
+                                                    : ""}
+                                            </strong>
                                             <span>{formatDateTime(hoveredRiskPoint.recordedAt)}</span>
                                         </div>
                                     )}

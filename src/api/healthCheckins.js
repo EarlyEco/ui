@@ -212,12 +212,49 @@ const cityQueryFromLocation = (location) => {
     return null;
 };
 
+/** Overview may expose pins under different keys; merge without duplicates. */
+const HOTSPOT_ARRAY_KEYS = [
+    "hotspots",
+    "risk_hotspots",
+    "location_hotspots",
+    "map_hotspots",
+    "anonymized_locations",
+    "anonymous_locations",
+    "report_locations",
+    "location_clusters",
+    "clusters",
+];
+
+const mergeHotspotArraysFromSnapshot = (snapshot) => {
+    if (!snapshot || typeof snapshot !== "object") return [];
+    const merged = [];
+    for (const key of HOTSPOT_ARRAY_KEYS) {
+        const arr = snapshot[key];
+        if (Array.isArray(arr)) merged.push(...arr);
+    }
+    const seen = new Set();
+    const deduped = [];
+    for (const item of merged) {
+        const lat = Number(item?.lat ?? item?.latitude);
+        const lon = Number(item?.lon ?? item?.longitude ?? item?.lng);
+        const id = item?.id != null ? String(item.id) : `${lat.toFixed(5)},${lon.toFixed(5)}`;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        deduped.push(item);
+    }
+    return deduped;
+};
+
+/** Default overview radius; keep map ring in app.jsx in sync (meters = km * 1000). */
+export const COMMUNITY_OVERVIEW_RADIUS_KM = 5;
+
 export const fetchCommunitySnapshot = async ({
     lookbackHours = 24,
     location = "all-locations",
     latitude,
     longitude,
-    radiusKm = 5,
+    radiusKm = COMMUNITY_OVERVIEW_RADIUS_KM,
 } = {}) => {
     const baseParams = () =>
         new URLSearchParams({
@@ -233,6 +270,8 @@ export const fetchCommunitySnapshot = async ({
         if (hasCoordinates) {
             params.set("latitude", String(latitude));
             params.set("longitude", String(longitude));
+            const city = cityQueryFromLocation(location);
+            if (city) params.set("city", city);
         } else if (location && location !== "all-locations" && location !== "current-location") {
             params.set("city", cityQueryFromLocation(location) || String(location));
         } else if (cityFromLocation) {
@@ -243,8 +282,8 @@ export const fetchCommunitySnapshot = async ({
             headers: { accept: "application/json" },
         });
         const snapshot = await readJsonOrThrow(response, "Could not fetch community snapshot.");
-        const hotspots = snapshot?.hotspots || snapshot?.risk_hotspots || [];
-        return { snapshot, hotspots: Array.isArray(hotspots) ? hotspots : [] };
+        const hotspots = mergeHotspotArraysFromSnapshot(snapshot);
+        return { snapshot, hotspots };
     } catch (error) {
         if (error?.userMessage) throw error;
         throw createError("Failed to fetch", "Could not fetch community snapshot.");
