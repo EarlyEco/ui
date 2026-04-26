@@ -636,6 +636,10 @@ export default function App() {
         setIsHealthModalOpen(true);
         pushToast("success", "Welcome back. You are signed in.");
     };
+    const handleOpenAuthModal = () => {
+        setActiveView("signin");
+        setIsAuthModalOpen(true);
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -963,10 +967,7 @@ export default function App() {
                             <button
                                 className="ghost-button icon-button"
                                 type="button"
-                                onClick={() => {
-                                    setActiveView("signin");
-                                    setIsAuthModalOpen(true);
-                                }}
+                                onClick={handleOpenAuthModal}
                                 aria-label="Open sign in or sign up"
                                 title="Sign in / Sign up"
                             >
@@ -984,6 +985,11 @@ export default function App() {
                             Professional health intelligence for proactive check-ins, clear risk visibility, and faster
                             preventive action.
                         </p>
+                        <div className="landing-cta-row">
+                            <button className="primary-button control-btn" type="button" onClick={handleOpenAuthModal}>
+                                Sign In / Sign Up
+                            </button>
+                        </div>
                     </div>
                     {renderCommunitySnapshotSection()}
                 </section>
