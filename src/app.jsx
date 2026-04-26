@@ -42,6 +42,7 @@ export default function App() {
     const [historyPageSize, setHistoryPageSize] = useState(5);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [profileData, setProfileData] = useState(null);
+    const [dashboardUser, setDashboardUser] = useState(null);
     const [isProfileLoading, setIsProfileLoading] = useState(false);
     const [profileError, setProfileError] = useState("");
     const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
@@ -440,6 +441,18 @@ export default function App() {
         () => apiCallStats.latest + apiCallStats.trend + apiCallStats.list + apiCallStats.detail,
         [apiCallStats]
     );
+    const greetingMessage = useMemo(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 18) return "Good afternoon";
+        return "Good evening";
+    }, []);
+    const dashboardDisplayName = useMemo(() => {
+        const first = dashboardUser?.first_name?.trim();
+        if (first) return first;
+        const fallback = dashboardUser?.email?.split("@")?.[0];
+        return fallback || "there";
+    }, [dashboardUser]);
     const totalHistoryPages = Math.max(1, Math.ceil(healthHistory.length / historyPageSize));
     const paginatedHistory = useMemo(() => {
         const start = (historyPage - 1) * historyPageSize;
@@ -585,6 +598,11 @@ export default function App() {
     useEffect(() => {
         if (isSignedIn) {
             loadHealthDashboard();
+            fetchMe()
+                .then((me) => setDashboardUser(me))
+                .catch(() => setDashboardUser(null));
+        } else {
+            setDashboardUser(null);
         }
     }, [isSignedIn]);
 
@@ -1002,8 +1020,11 @@ export default function App() {
                     <div className="dashboard-top">
                         <div className="dashboard-top-left">
                             <div className="card-heading">
-                                <h2>Your Health Information</h2>
-                                <p>Submit and review your latest health check-in details.</p>
+                                <h2>{greetingMessage}, {dashboardDisplayName}.</h2>
+                                <p>
+                                    Welcome back to Early Eco. Review your latest health check-ins and stay ahead with
+                                    proactive insights.
+                                </p>
                             </div>
                         </div>
                         <div className="dashboard-top-right">
