@@ -37,6 +37,7 @@ export default function App() {
     const [healthSuggestions, setHealthSuggestions] = useState(null);
     const [suggestionsError, setSuggestionsError] = useState("");
     const [toasts, setToasts] = useState([]);
+    const [hoveredRiskPoint, setHoveredRiskPoint] = useState(null);
     const [apiCallStats, setApiCallStats] = useState({
         latest: 0,
         trend: 0,
@@ -56,16 +57,22 @@ export default function App() {
         const normalized = [...healthHistory]
             .filter((entry) => entry?.recorded_at && typeof entry?.risk_score === "number")
             .sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
-        if (!normalized.length) return { linePoints: "", points: [] };
+        if (!normalized.length) return { bars: [] };
 
         const maxRisk = Math.max(...normalized.map((item) => item.risk_score), 1);
-        const maxX = normalized.length - 1 || 1;
-        const points = normalized.map((item, idx) => {
-            const x = (idx / maxX) * 100;
-            const y = 100 - (item.risk_score / maxRisk) * 100;
-            return { id: item.id, x, y, risk: item.risk_score, recordedAt: item.recorded_at };
+        const maxX = normalized.length - 1;
+        const bars = normalized.map((item, idx) => {
+            const normalizedRisk = item.risk_score / maxRisk;
+            return {
+                id: item.id,
+                risk: item.risk_score,
+                recordedAt: item.recorded_at,
+                height: Math.max(8, normalizedRisk * 100),
+                xPercent: maxX > 0 ? (idx / maxX) * 100 : 50,
+            };
         });
-        return { linePoints: points.map((point) => `${point.x},${point.y}`).join(" "), points };
+
+        return { bars };
     }, [healthHistory]);
     const riskLevelBars = useMemo(() => {
         const levels = { low: 0, medium: 0, high: 0, unknown: 0 };
@@ -404,24 +411,40 @@ export default function App() {
                             </div>
                         )}
 
-                        {riskChartData.linePoints && (
+                        {riskChartData.bars.length > 0 && (
                             <div className="chart-wrap">
                                 <h3>Risk Trend</h3>
-                                <svg viewBox="0 0 100 100" className="risk-chart" preserveAspectRatio="none">
-                                <polyline points={riskChartData.linePoints} fill="none" stroke="#56d6ff" strokeWidth="0.2" />
-                                    {riskChartData.points.map((point) => (
-                                        <circle
-                                            key={point.id}
-                                            cx={point.x}
-                                            cy={point.y}
-                                        r="0.3"
-                                            className="risk-point"
-                                            onClick={() => handleSelectCheckin(point.id)}
+                                <div className="risk-chart-wrap" onMouseLeave={() => setHoveredRiskPoint(null)}>
+                                    <div className="risk-bar-chart">
+                                        {riskChartData.bars.map((bar) => (
+                                            <button
+                                                key={bar.id}
+                                                type="button"
+                                                className="risk-trend-bar"
+                                                style={{ height: `${bar.height}%` }}
+                                                onMouseEnter={() => setHoveredRiskPoint(bar)}
+                                                onFocus={() => setHoveredRiskPoint(bar)}
+                                                onClick={() => handleSelectCheckin(bar.id)}
+                                                aria-label={`Risk ${bar.risk} at ${formatDateTime(bar.recordedAt)}`}
+                                                title={`${formatDateTime(bar.recordedAt)} | Risk ${bar.risk}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    {hoveredRiskPoint && (
+                                        <div
+                                            className="risk-tooltip"
+                                            style={{
+                                                left: `${Math.min(92, Math.max(8, hoveredRiskPoint.xPercent))}%`,
+                                                top: "14%",
+                                            }}
                                         >
-                                            <title>{`${formatDateTime(point.recordedAt)} | Risk ${point.risk}`}</title>
-                                        </circle>
-                                    ))}
-                                </svg>
+                                            <strong>Risk: {hoveredRiskPoint.risk}</strong>
+                                            <span>{formatDateTime(hoveredRiskPoint.recordedAt)}</span>
+                                        </div>
+                                    )}
+                                    <div className="risk-axis-label risk-axis-y">Risk</div>
+                                    <div className="risk-axis-label risk-axis-x">Timeline</div>
+                                </div>
                                 <p className="chart-caption">Click a point to view full check-in details.</p>
                             </div>
                         )}
