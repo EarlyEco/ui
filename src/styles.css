@@ -77,11 +77,17 @@ body {
 
 .page-top-actions {
     position: fixed;
-    top: 12px;
-    right: 14px;
-    z-index: 40;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    right: max(14px, env(safe-area-inset-right, 0px));
+    /* Above Leaflet map panes (~400–700); below modals/toasts */
+    z-index: 3000;
     display: flex;
     gap: 8px;
+    pointer-events: none;
+}
+
+.page-top-actions > * {
+    pointer-events: auto;
 }
 
 .icon-button {
@@ -181,16 +187,19 @@ body {
 .landing-hero-card {
     border: 1px solid var(--border-soft);
     border-radius: 16px;
-    padding: 24px 22px;
+    /* Extra right padding so headline/badge clear the top-right account icon */
+    padding: 24px 54px 24px 22px;
     background: linear-gradient(135deg, rgba(33, 18, 58, 0.85), rgba(14, 10, 28, 0.84));
     box-shadow: 0 18px 40px rgba(5, 10, 30, 0.36);
     position: relative;
+    overflow: visible;
 }
 
 .landing-user-action {
     position: absolute;
     top: 12px;
-    right: 12px;
+    right: 32px;
+    z-index: 2;
 }
 
 .landing-badge {
@@ -1275,7 +1284,7 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(2, 7, 20, 0.7);
-    z-index: 50;
+    z-index: 5000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1283,7 +1292,7 @@ body {
 }
 
 .auth-modal-overlay {
-    z-index: 55;
+    z-index: 5100;
 }
 
 .modal-card {
@@ -1691,7 +1700,7 @@ body {
     position: fixed;
     right: 14px;
     top: 58px;
-    z-index: 60;
+    z-index: 5200;
     display: grid;
     gap: 8px;
     width: min(360px, calc(100vw - 28px));
@@ -1793,7 +1802,7 @@ body {
     }
 
     .landing-hero-card {
-        padding: 18px 14px;
+        padding: 18px 48px 18px 14px;
     }
 
     .landing-feature-grid {

@@ -1,10 +1,12 @@
 import Signup from "./components/Signup";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { clearSessionToken, fetchMe, getSessionToken, logout } from "./api/auth";
 import {
+    fetchCommunitySnapshot,
     fetchHealthCheckinById,
     fetchHealthCheckinList,
     fetchHealthSuggestions,
@@ -56,276 +58,43 @@ export default function App() {
     const [detectedCommunityLabel, setDetectedCommunityLabel] = useState("Current location");
     const [currentUserCoords, setCurrentUserCoords] = useState(null);
     const [mapRecenterKey, setMapRecenterKey] = useState(0);
+    const [communitySnapshotData, setCommunitySnapshotData] = useState(null);
+    const [communityHotspotsData, setCommunityHotspotsData] = useState([]);
+    const [isCommunityLoading, setIsCommunityLoading] = useState(false);
+    const [communityError, setCommunityError] = useState("");
     const [apiCallStats, setApiCallStats] = useState({
         latest: 0,
         trend: 0,
         list: 0,
         detail: 0,
     });
-    const communitySnapshotsByLocationAndLookback = {
-        "all-locations": {
-            "24": {
-                location_mode: "global",
-                location_label: "all-locations",
-                lookback_hours: 24,
-                total_reports: 397,
-                unhealthy_reports: 40,
-                unhealthy_ratio: 0.1008,
-                average_risk_score: 20.33,
-                risk_breakdown: {
-                    low: 357,
-                    moderate: 17,
-                    high: 23,
-                },
-                top_symptoms: ["fatigue", "sore_throat", "body_aches", "cough", "headache"],
-                warning_level: "info",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "High-risk cases present",
-                        detail: "23 high-risk reports detected in selected window.",
-                    },
-                    {
-                        severity: "info",
-                        title: "Most reported symptoms",
-                        detail: "fatigue, sore_throat, body_aches, cough, headache",
-                    },
-                ],
-            },
-            "48": {
-                location_mode: "global",
-                location_label: "all-locations",
-                lookback_hours: 48,
-                total_reports: 612,
-                unhealthy_reports: 73,
-                unhealthy_ratio: 0.1193,
-                average_risk_score: 24.88,
-                risk_breakdown: {
-                    low: 539,
-                    moderate: 36,
-                    high: 37,
-                },
-                top_symptoms: ["fatigue", "sore_throat", "cough", "headache", "congestion"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Elevated medium/high-risk reports",
-                        detail: "73 unhealthy reports detected in selected window.",
-                    },
-                    {
-                        severity: "info",
-                        title: "Most reported symptoms",
-                        detail: "fatigue, sore_throat, cough, headache, congestion",
-                    },
-                ],
-            },
-            "168": {
-                location_mode: "global",
-                location_label: "all-locations",
-                lookback_hours: 168,
-                total_reports: 1654,
-                unhealthy_reports: 244,
-                unhealthy_ratio: 0.1475,
-                average_risk_score: 31.67,
-                risk_breakdown: {
-                    low: 1410,
-                    moderate: 118,
-                    high: 126,
-                },
-                top_symptoms: ["fatigue", "cough", "body_aches", "headache", "shortness_of_breath"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Persistent high-risk trend",
-                        detail: "High-risk cases sustained across the week.",
-                    },
-                    {
-                        severity: "info",
-                        title: "Most reported symptoms",
-                        detail: "fatigue, cough, body_aches, headache, shortness_of_breath",
-                    },
-                ],
-            },
-        },
-        phoenix: {
-            "24": {
-                location_mode: "city",
-                location_label: "Phoenix",
-                lookback_hours: 24,
-                total_reports: 128,
-                unhealthy_reports: 18,
-                unhealthy_ratio: 0.1406,
-                average_risk_score: 27.41,
-                risk_breakdown: {
-                    low: 110,
-                    moderate: 9,
-                    high: 9,
-                },
-                top_symptoms: ["fatigue", "cough", "sore_throat", "headache", "body_aches"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Rising respiratory symptoms",
-                        detail: "Higher cough and sore throat reports in Phoenix.",
-                    },
-                    {
-                        severity: "info",
-                        title: "Most reported symptoms",
-                        detail: "fatigue, cough, sore_throat, headache, body_aches",
-                    },
-                ],
-            },
-            "48": {
-                location_mode: "city",
-                location_label: "Phoenix",
-                lookback_hours: 48,
-                total_reports: 202,
-                unhealthy_reports: 34,
-                unhealthy_ratio: 0.1683,
-                average_risk_score: 32.12,
-                risk_breakdown: {
-                    low: 168,
-                    moderate: 17,
-                    high: 17,
-                },
-                top_symptoms: ["fatigue", "cough", "body_aches", "headache", "fever"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "High-risk cluster in local pockets",
-                        detail: "17 high-risk reports in selected window.",
-                    },
-                ],
-            },
-            "168": {
-                location_mode: "city",
-                location_label: "Phoenix",
-                lookback_hours: 168,
-                total_reports: 501,
-                unhealthy_reports: 101,
-                unhealthy_ratio: 0.2016,
-                average_risk_score: 39.75,
-                risk_breakdown: {
-                    low: 400,
-                    moderate: 49,
-                    high: 52,
-                },
-                top_symptoms: ["fatigue", "cough", "fever", "body_aches", "shortness_of_breath"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Sustained elevated risk in Phoenix",
-                        detail: "Weekly pattern indicates above-average unhealthy ratio.",
-                    },
-                ],
-            },
-        },
-        tucson: {
-            "24": {
-                location_mode: "city",
-                location_label: "Tucson",
-                lookback_hours: 24,
-                total_reports: 92,
-                unhealthy_reports: 8,
-                unhealthy_ratio: 0.087,
-                average_risk_score: 18.04,
-                risk_breakdown: {
-                    low: 84,
-                    moderate: 4,
-                    high: 4,
-                },
-                top_symptoms: ["fatigue", "headache", "congestion", "sore_throat", "nausea"],
-                warning_level: "info",
-                warnings: [
-                    {
-                        severity: "info",
-                        title: "Stable local pattern",
-                        detail: "No significant spike in high-risk reports in Tucson.",
-                    },
-                ],
-            },
-            "48": {
-                location_mode: "city",
-                location_label: "Tucson",
-                lookback_hours: 48,
-                total_reports: 151,
-                unhealthy_reports: 18,
-                unhealthy_ratio: 0.1192,
-                average_risk_score: 23.91,
-                risk_breakdown: {
-                    low: 133,
-                    moderate: 8,
-                    high: 10,
-                },
-                top_symptoms: ["fatigue", "headache", "sore_throat", "cough", "congestion"],
-                warning_level: "info",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Watch moderate-risk reports",
-                        detail: "Moderate and high categories increased slightly over 48h.",
-                    },
-                ],
-            },
-            "168": {
-                location_mode: "city",
-                location_label: "Tucson",
-                lookback_hours: 168,
-                total_reports: 396,
-                unhealthy_reports: 53,
-                unhealthy_ratio: 0.1338,
-                average_risk_score: 28.11,
-                risk_breakdown: {
-                    low: 343,
-                    moderate: 23,
-                    high: 30,
-                },
-                top_symptoms: ["fatigue", "cough", "headache", "congestion", "body_aches"],
-                warning_level: "warning",
-                warnings: [
-                    {
-                        severity: "warning",
-                        title: "Gradual uptick in high-risk reports",
-                        detail: "High-risk share increased toward the end of the week.",
-                    },
-                ],
-            },
-        },
-    };
     const effectiveCommunityLocation =
         communityLocation === "current-location" ? detectedCommunityLabel : communityLocation;
-    const communitySnapshot =
-        communitySnapshotsByLocationAndLookback[effectiveCommunityLocation]?.[communityLookbackHours] ||
-        communitySnapshotsByLocationAndLookback["all-locations"]["24"];
+    const communitySnapshot = {
+        location_label: communitySnapshotData?.location_label || effectiveCommunityLocation,
+        lookback_hours: Number(communitySnapshotData?.lookback_hours || communityLookbackHours),
+        total_reports: Number(communitySnapshotData?.total_reports || 0),
+        unhealthy_reports: Number(communitySnapshotData?.unhealthy_reports || 0),
+        unhealthy_ratio: Number(communitySnapshotData?.unhealthy_ratio || 0),
+        average_risk_score: Number(communitySnapshotData?.average_risk_score || 0),
+        risk_breakdown: {
+            low: Number(communitySnapshotData?.risk_breakdown?.low || 0),
+            moderate: Number(communitySnapshotData?.risk_breakdown?.moderate || 0),
+            high: Number(communitySnapshotData?.risk_breakdown?.high || 0),
+        },
+        top_symptoms: Array.isArray(communitySnapshotData?.top_symptoms) ? communitySnapshotData.top_symptoms : [],
+        warning_level: communitySnapshotData?.warning_level || "info",
+        warnings: Array.isArray(communitySnapshotData?.warnings) ? communitySnapshotData.warnings : [],
+    };
     const communityLocationCoordinates = {
         phoenix: { lat: 33.4484, lon: -112.074, label: "Phoenix" },
         tucson: { lat: 32.2226, lon: -110.9747, label: "Tucson" },
     };
-    const communityRiskHotspots = {
-        phoenix: [
-            { id: "phx-1", lat: 33.452, lon: -112.067, severity: "critical", label: "Downtown Phoenix", cases: 14 },
-            { id: "phx-2", lat: 33.465, lon: -112.02, severity: "warning", label: "East Valley", cases: 8 },
-            { id: "phx-3", lat: 33.402, lon: -112.12, severity: "good", label: "West Phoenix", cases: 3 },
-        ],
-        tucson: [
-            { id: "tus-1", lat: 32.229, lon: -110.97, severity: "warning", label: "Central Tucson", cases: 6 },
-            { id: "tus-2", lat: 32.256, lon: -110.88, severity: "critical", label: "Northeast Tucson", cases: 11 },
-            { id: "tus-3", lat: 32.19, lon: -111.02, severity: "good", label: "Southwest Tucson", cases: 2 },
-        ],
-    };
     const selectedCommunityMapLocation =
         communityLocationCoordinates[effectiveCommunityLocation] || null;
     const visibleCommunityHotspots = useMemo(() => {
-        if (effectiveCommunityLocation === "all-locations") {
-            return [...communityRiskHotspots.phoenix, ...communityRiskHotspots.tucson];
-        }
-        return communityRiskHotspots[effectiveCommunityLocation] || [];
-    }, [effectiveCommunityLocation]);
+        return communityHotspotsData;
+    }, [communityHotspotsData]);
     const mapCenter = useMemo(() => {
         if (communityLocation === "current-location" && currentUserCoords) {
             return [currentUserCoords.lat, currentUserCoords.lon];
@@ -373,6 +142,43 @@ export default function App() {
     useEffect(() => {
         refreshCurrentLocation();
     }, []);
+    useEffect(() => {
+        const loadCommunitySnapshot = async () => {
+            setIsCommunityLoading(true);
+            setCommunityError("");
+            try {
+                const useCoordinates = communityLocation === "current-location" && currentUserCoords;
+                const { snapshot, hotspots } = await fetchCommunitySnapshot({
+                    lookbackHours: Number(communityLookbackHours),
+                    location: effectiveCommunityLocation,
+                    latitude: useCoordinates ? Number(currentUserCoords.lat) : undefined,
+                    longitude: useCoordinates ? Number(currentUserCoords.lon) : undefined,
+                    radiusKm: 5,
+                });
+                setCommunitySnapshotData(snapshot || {});
+                setCommunityHotspotsData(
+                    (Array.isArray(hotspots) ? hotspots : [])
+                        .map((hotspot, index) => ({
+                            id: hotspot?.id || `hotspot-${index}`,
+                            lat: Number(hotspot?.lat ?? hotspot?.latitude),
+                            lon: Number(hotspot?.lon ?? hotspot?.longitude),
+                            severity: hotspot?.severity || "warning",
+                            label: hotspot?.label || hotspot?.name || "Unknown location",
+                            cases: Number(hotspot?.cases ?? hotspot?.reported_cases ?? 0),
+                        }))
+                        .filter((hotspot) => Number.isFinite(hotspot.lat) && Number.isFinite(hotspot.lon))
+                );
+            } catch (error) {
+                setCommunitySnapshotData(null);
+                setCommunityHotspotsData([]);
+                setCommunityError(error?.userMessage || "Unable to load community snapshot.");
+            } finally {
+                setIsCommunityLoading(false);
+            }
+        };
+
+        loadCommunitySnapshot();
+    }, [communityLookbackHours, communityLocation, effectiveCommunityLocation, currentUserCoords]);
     const communityRiskBreakdownBars = useMemo(() => {
         const breakdown = communitySnapshot.risk_breakdown || {};
         const entries = [
@@ -764,6 +570,8 @@ export default function App() {
             <p className="community-home-subtitle">
                 Last {communitySnapshot.lookback_hours} hours in {communitySnapshot.location_label}.
             </p>
+            {isCommunityLoading && <p className="status-message">Loading live community data...</p>}
+            {communityError && <p className="status-message error">{communityError}</p>}
             <div className="community-kpi-grid">
                 <div className="insight-card tone-info">
                     <span>Total Reports</span>
@@ -792,14 +600,18 @@ export default function App() {
                 <div className="community-detail-card">
                     <h3>Top Symptoms</h3>
                     <div className="symptom-word-cloud" aria-label="Top symptoms word cloud">
-                        {communitySnapshot.top_symptoms.map((symptom, index) => (
-                            <span
-                                key={symptom}
-                                className={`symptom-cloud-word weight-${Math.min(index + 1, 5)}`}
-                            >
-                                {symptom.replace(/_/g, " ")}
-                            </span>
-                        ))}
+                        {communitySnapshot.top_symptoms.length > 0 ? (
+                            communitySnapshot.top_symptoms.map((symptom, index) => (
+                                <span
+                                    key={symptom}
+                                    className={`symptom-cloud-word weight-${Math.min(index + 1, 5)}`}
+                                >
+                                    {symptom.replace(/_/g, " ")}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="status-message">No symptom data available yet.</span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -926,39 +738,45 @@ export default function App() {
                 </div>
             </div>
             <div className="community-warning-list">
-                {communitySnapshot.warnings.map((warning) => (
-                    <article key={warning.title} className={`suggestion-item ${toneClassForSeverity(warning.severity)}`}>
-                        <strong>{warning.title}</strong>
-                        <span>{warning.detail}</span>
-                    </article>
-                ))}
+                {communitySnapshot.warnings.length > 0 ? (
+                    communitySnapshot.warnings.map((warning) => (
+                        <article key={warning.title} className={`suggestion-item ${toneClassForSeverity(warning.severity)}`}>
+                            <strong>{warning.title}</strong>
+                            <span>{warning.detail}</span>
+                        </article>
+                    ))
+                ) : (
+                    <p className="status-message">No community warnings right now.</p>
+                )}
             </div>
         </section>
     );
 
+    const signedInTopBar = (
+        <div className="page-top-actions" role="navigation" aria-label="Account">
+            <button
+                className="ghost-button icon-button"
+                type="button"
+                onClick={handleOpenProfile}
+                aria-label="Open profile"
+                title="Profile"
+            >
+                <svg viewBox="0 0 24 24" className="icon-svg" aria-hidden="true">
+                    <path
+                        d="M12 12a4.75 4.75 0 1 0-4.75-4.75A4.75 4.75 0 0 0 12 12Zm0 2.5c-4.25 0-7.75 2.43-7.75 5.42A1.08 1.08 0 0 0 5.33 21h13.34a1.08 1.08 0 0 0 1.08-1.08c0-2.99-3.5-5.42-7.75-5.42Z"
+                        fill="currentColor"
+                    />
+                </svg>
+            </button>
+        </div>
+    );
+
     return (
-        <div className={`app-shell ${isSignedIn ? "signed-in" : "logged-out"}`}>
+        <>
+            {isSignedIn ? createPortal(signedInTopBar, document.body) : null}
+            <div className={`app-shell ${isSignedIn ? "signed-in" : "logged-out"}`}>
             <div className="ambient-glow glow-one" />
             <div className="ambient-glow glow-two" />
-
-            {isSignedIn && (
-                <div className="page-top-actions">
-                    <button
-                        className="ghost-button icon-button"
-                        type="button"
-                        onClick={handleOpenProfile}
-                        aria-label="Open profile"
-                        title="Profile"
-                    >
-                        <svg viewBox="0 0 24 24" className="icon-svg" aria-hidden="true">
-                            <path
-                                d="M12 12a4.75 4.75 0 1 0-4.75-4.75A4.75 4.75 0 0 0 12 12Zm0 2.5c-4.25 0-7.75 2.43-7.75 5.42A1.08 1.08 0 0 0 5.33 21h13.34a1.08 1.08 0 0 0 1.08-1.08c0-2.99-3.5-5.42-7.75-5.42Z"
-                                fill="currentColor"
-                            />
-                        </svg>
-                    </button>
-                </div>
-            )}
 
             {!isSignedIn && (
                 <section className="landing-home">
@@ -985,11 +803,6 @@ export default function App() {
                             Professional health intelligence for proactive check-ins, clear risk visibility, and faster
                             preventive action.
                         </p>
-                        <div className="landing-cta-row">
-                            <button className="primary-button control-btn" type="button" onClick={handleOpenAuthModal}>
-                                Sign In / Sign Up
-                            </button>
-                        </div>
                     </div>
                     {renderCommunitySnapshotSection()}
                 </section>
@@ -1537,5 +1350,6 @@ export default function App() {
                 </div>
             )}
         </div>
+        </>
     );
 }
