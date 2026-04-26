@@ -227,6 +227,9 @@ export default function App() {
                             </div>
                         </div>
                         <div className="dashboard-top-right">
+                            <button className="primary-button control-btn" type="button" onClick={() => setIsHealthModalOpen(true)}>
+                                Feed your health info
+                            </button>
                             <div className="mini-filter-strip">
                                 <label className="field mini-field">
                                     <span>Start Date</span>

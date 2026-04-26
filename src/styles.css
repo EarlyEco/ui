@@ -346,8 +346,9 @@ body {
 
 .dashboard-top-right {
     display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
 }
 
 .dashboard-scroll {
