@@ -332,18 +332,10 @@ body {
     border-radius: 10px;
     padding: 6px 8px;
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 1fr;
     gap: 0;
     width: 100%;
     align-items: start;
-}
-
-.dashboard-top-right {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-left: 10px;
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .dashboard-top-left .card-heading h2,
@@ -532,10 +524,19 @@ body {
 .kpi-top-grid .insight-card {
     border-radius: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 14px 14px;
 }
 
 .kpi-top-grid .insight-card:last-child {
     border-right: none;
+}
+
+.kpi-top-grid .insight-card span {
+    font-size: 0.85rem;
+}
+
+.kpi-top-grid .insight-card strong {
+    font-size: 1.25rem;
 }
 
 .health-summary h3,
@@ -697,11 +698,6 @@ body {
     .dashboard-top {
         position: static;
         grid-template-columns: 1fr;
-    }
-
-    .dashboard-top-right {
-        border-left: none;
-        padding-left: 0;
     }
 
     .dashboard-scroll {
