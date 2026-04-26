@@ -307,32 +307,34 @@ export default function App() {
             )}
 
             {!isSignedIn && (
-                <section className="panel">
-                    <div className="tab-row">
-                        <button
-                            className={`tab-button ${activeView === "signup" ? "active" : ""}`}
-                            onClick={() => setActiveView("signup")}
-                            type="button"
-                        >
-                            Create Account
-                        </button>
-                        <button
-                            className={`tab-button ${activeView === "signin" ? "active" : ""}`}
-                            onClick={() => setActiveView("signin")}
-                            type="button"
-                        >
-                            Sign In
-                        </button>
-                    </div>
+                <div className="modal-overlay auth-modal-overlay" role="dialog" aria-modal="true" aria-label="Authentication">
+                    <div className="modal-card auth-modal-card">
+                        <div className="tab-row">
+                            <button
+                                className={`tab-button ${activeView === "signup" ? "active" : ""}`}
+                                onClick={() => setActiveView("signup")}
+                                type="button"
+                            >
+                                Create Account
+                            </button>
+                            <button
+                                className={`tab-button ${activeView === "signin" ? "active" : ""}`}
+                                onClick={() => setActiveView("signin")}
+                                type="button"
+                            >
+                                Sign In
+                            </button>
+                        </div>
 
-                    <div className="form-area">
-                        {activeView === "signup" ? (
-                            <Signup onSignupSuccess={() => setActiveView("signin")} />
-                        ) : (
-                            <Signin onSigninSuccess={handleSigninSuccess} />
-                        )}
+                        <div className="form-area">
+                            {activeView === "signup" ? (
+                                <Signup onSignupSuccess={() => setActiveView("signin")} />
+                            ) : (
+                                <Signin onSigninSuccess={handleSigninSuccess} />
+                            )}
+                        </div>
                     </div>
-                </section>
+                </div>
             )}
 
             {isSignedIn && (
