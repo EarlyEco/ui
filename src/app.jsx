@@ -25,6 +25,8 @@ export default function App() {
     const [untilFilter, setUntilFilter] = useState("");
     const [selectedCheckin, setSelectedCheckin] = useState(null);
     const [isCheckinLoading, setIsCheckinLoading] = useState(false);
+    const [historyPage, setHistoryPage] = useState(1);
+    const [historyPageSize, setHistoryPageSize] = useState(5);
     const [apiCallStats, setApiCallStats] = useState({
         latest: 0,
         trend: 0,
@@ -76,6 +78,11 @@ export default function App() {
         () => apiCallStats.latest + apiCallStats.trend + apiCallStats.list + apiCallStats.detail,
         [apiCallStats]
     );
+    const totalHistoryPages = Math.max(1, Math.ceil(healthHistory.length / historyPageSize));
+    const paginatedHistory = useMemo(() => {
+        const start = (historyPage - 1) * historyPageSize;
+        return healthHistory.slice(start, start + historyPageSize);
+    }, [healthHistory, historyPage, historyPageSize]);
     const filterSummary = useMemo(() => {
         if (!sinceFilter && !untilFilter) return "Showing latest records";
         const parts = [];
@@ -116,6 +123,7 @@ export default function App() {
                     }))
                     : []
             );
+            setHistoryPage(1);
         } catch (error) {
             setHealthSubmitMessage(`❌ ${error?.userMessage || "Unable to load health information right now."}`);
         } finally {
@@ -217,6 +225,8 @@ export default function App() {
                                 <h2>Your Health Information</h2>
                                 <p>Submit and review your latest health check-in details.</p>
                             </div>
+                        </div>
+                        <div className="dashboard-top-right">
                             <div className="mini-filter-strip">
                                 <label className="field mini-field">
                                     <span>Start Date</span>
@@ -230,24 +240,24 @@ export default function App() {
                                     Apply
                                 </button>
                             </div>
-                            <div className="insight-grid kpi-top-grid">
-                                <div className="insight-card">
-                                    <span>Risk Level</span>
-                                    <strong>{healthTrend?.latest_is_healthy ? "Healthy" : healthInfo?.risk_level || "-"}</strong>
-                                </div>
-                                <div className="insight-card">
-                                    <span>Latest Risk Score</span>
-                                    <strong>{healthTrend?.latest_risk_score ?? "-"}</strong>
-                                </div>
-                                <div className="insight-card">
-                                    <span>Trend Direction</span>
-                                    <strong>{healthTrend?.trend_direction || "-"}</strong>
-                                </div>
-                                <div className="insight-card">
-                                    <span>Healthy Check-ins</span>
-                                    <strong>{healthTrend?.healthy_points ?? 0} / {healthTrend?.total_points ?? 0}</strong>
-                                </div>
-                            </div>
+                        </div>
+                    </div>
+                    <div className="insight-grid kpi-top-grid">
+                        <div className="insight-card">
+                            <span>Risk Level</span>
+                            <strong>{healthTrend?.latest_is_healthy ? "Healthy" : healthInfo?.risk_level || "-"}</strong>
+                        </div>
+                        <div className="insight-card">
+                            <span>Latest Risk Score</span>
+                            <strong>{healthTrend?.latest_risk_score ?? "-"}</strong>
+                        </div>
+                        <div className="insight-card">
+                            <span>Trend Direction</span>
+                            <strong>{healthTrend?.trend_direction || "-"}</strong>
+                        </div>
+                        <div className="insight-card">
+                            <span>Healthy Check-ins</span>
+                            <strong>{healthTrend?.healthy_points ?? 0} / {healthTrend?.total_points ?? 0}</strong>
                         </div>
                     </div>
                     <div className="dashboard-scroll">
@@ -351,7 +361,7 @@ export default function App() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {healthHistory.map((entry) => (
+                                        {paginatedHistory.map((entry) => (
                                             <tr key={entry.id}>
                                                 <td>{entry.recorded_at ? formatDateTime(entry.recorded_at) : "-"}</td>
                                                 <td>
@@ -370,6 +380,41 @@ export default function App() {
                                         ))}
                                     </tbody>
                                 </table>
+                                <div className="table-pagination">
+                                    <label className="field mini-field">
+                                        <span>Rows</span>
+                                        <select
+                                            value={historyPageSize}
+                                            onChange={(e) => {
+                                                setHistoryPageSize(Number(e.target.value));
+                                                setHistoryPage(1);
+                                            }}
+                                        >
+                                            <option value={5}>5</option>
+                                            <option value={10}>10</option>
+                                            <option value={15}>15</option>
+                                        </select>
+                                    </label>
+                                    <span className="pagination-meta">
+                                        Page {historyPage} of {totalHistoryPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="ghost-button control-btn"
+                                        disabled={historyPage <= 1}
+                                        onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                                    >
+                                        Previous
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ghost-button control-btn"
+                                        disabled={historyPage >= totalHistoryPages}
+                                        onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
+                                    >
+                                        Next
+                                    </button>
+                                </div>
                             </div>
                         )}
 

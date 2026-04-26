@@ -319,9 +319,10 @@ body {
 }
 
 .kpi-top-grid {
-    margin-top: 4px;
+    margin-top: 8px;
     gap: 0;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
 }
 
 .dashboard-top {
@@ -332,7 +333,7 @@ body {
     border-radius: 10px;
     padding: 6px 8px;
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 0;
     width: 100%;
     align-items: start;
@@ -341,6 +342,12 @@ body {
 .dashboard-top-left .card-heading h2,
 .dashboard-top-left .card-heading p {
     text-align: left;
+}
+
+.dashboard-top-right {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
 }
 
 .dashboard-scroll {
@@ -361,6 +368,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
     background: rgba(5, 12, 38, 0.55);
+    margin-left: auto;
 }
 
 .mini-field span {
@@ -574,6 +582,21 @@ body {
     font-weight: 600;
 }
 
+.table-pagination {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+    justify-content: flex-end;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.pagination-meta {
+    color: #9db4ec;
+    font-size: 0.84rem;
+    padding: 0 4px 8px;
+}
+
 .link-button {
     border: none;
     background: transparent;
@@ -698,6 +721,11 @@ body {
     .dashboard-top {
         position: static;
         grid-template-columns: 1fr;
+    }
+
+    .dashboard-top-right {
+        justify-content: flex-start;
+        margin-top: 6px;
     }
 
     .dashboard-scroll {
