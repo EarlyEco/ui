@@ -13,8 +13,7 @@ import Signin from "./components/signin";
 
 export default function App() {
     const [activeView, setActiveView] = useState("signup");
-    const [isSignedIn, setIsSignedIn] = useState(false);
-    const [hasLoggedInThisVisit, setHasLoggedInThisVisit] = useState(false);
+    const [isSignedIn, setIsSignedIn] = useState(Boolean(getSessionToken()));
     const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
     const [healthInfo, setHealthInfo] = useState(null);
     const [healthTrend, setHealthTrend] = useState(null);
@@ -132,7 +131,6 @@ export default function App() {
 
     const handleSigninSuccess = () => {
         setIsSignedIn(true);
-        setHasLoggedInThisVisit(true);
         setHealthSubmitMessage("");
         setIsHealthModalOpen(true);
     };
@@ -210,7 +208,7 @@ export default function App() {
                 </section>
             )}
 
-            {isSignedIn && hasLoggedInThisVisit && (
+            {isSignedIn && (
                 <section className="panel health-panel">
                     <h1 className="main-page-title">EarlyEco Health Dashboard</h1>
                     <div className="dashboard-top">
@@ -218,6 +216,19 @@ export default function App() {
                             <div className="card-heading">
                                 <h2>Your Health Information</h2>
                                 <p>Submit and review your latest health check-in details.</p>
+                            </div>
+                            <div className="mini-filter-strip">
+                                <label className="field mini-field">
+                                    <span>Start Date</span>
+                                    <input type="date" value={sinceFilter} onChange={(e) => setSinceFilter(e.target.value)} />
+                                </label>
+                                <label className="field mini-field">
+                                    <span>End Date</span>
+                                    <input type="date" value={untilFilter} onChange={(e) => setUntilFilter(e.target.value)} />
+                                </label>
+                                <button className="ghost-button control-btn" type="button" onClick={loadHealthDashboard}>
+                                    Apply
+                                </button>
                             </div>
                             <div className="insight-grid kpi-top-grid">
                                 <div className="insight-card">
@@ -242,19 +253,6 @@ export default function App() {
                             <button className="primary-button control-btn" type="button" onClick={() => setIsHealthModalOpen(true)}>
                                 Feed your health info
                             </button>
-                            <div className="filter-grid">
-                                <label className="field">
-                                    <span>Since</span>
-                                    <input type="date" value={sinceFilter} onChange={(e) => setSinceFilter(e.target.value)} />
-                                </label>
-                                <label className="field">
-                                    <span>Until</span>
-                                    <input type="date" value={untilFilter} onChange={(e) => setUntilFilter(e.target.value)} />
-                                </label>
-                                <button className="ghost-button control-btn" type="button" onClick={loadHealthDashboard}>
-                                    Apply Filters
-                                </button>
-                            </div>
                         </div>
                     </div>
                     <div className="dashboard-scroll">
