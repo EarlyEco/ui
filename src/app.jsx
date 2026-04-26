@@ -40,99 +40,251 @@ export default function App() {
     const [toasts, setToasts] = useState([]);
     const [hoveredRiskPoint, setHoveredRiskPoint] = useState(null);
     const [communityLookbackHours, setCommunityLookbackHours] = useState("24");
+    const [communityLocation, setCommunityLocation] = useState("all-locations");
     const [apiCallStats, setApiCallStats] = useState({
         latest: 0,
         trend: 0,
         list: 0,
         detail: 0,
     });
-    const communitySnapshotsByLookback = {
-        "24": {
-            location_mode: "global",
-            location_label: "all-locations",
-            lookback_hours: 24,
-            total_reports: 397,
-            unhealthy_reports: 40,
-            unhealthy_ratio: 0.1008,
-            average_risk_score: 20.33,
-            risk_breakdown: {
-                low: 357,
-                moderate: 17,
-                high: 23,
+    const communitySnapshotsByLocationAndLookback = {
+        "all-locations": {
+            "24": {
+                location_mode: "global",
+                location_label: "all-locations",
+                lookback_hours: 24,
+                total_reports: 397,
+                unhealthy_reports: 40,
+                unhealthy_ratio: 0.1008,
+                average_risk_score: 20.33,
+                risk_breakdown: {
+                    low: 357,
+                    moderate: 17,
+                    high: 23,
+                },
+                top_symptoms: ["fatigue", "sore_throat", "body_aches", "cough", "headache"],
+                warning_level: "info",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "High-risk cases present",
+                        detail: "23 high-risk reports detected in selected window.",
+                    },
+                    {
+                        severity: "info",
+                        title: "Most reported symptoms",
+                        detail: "fatigue, sore_throat, body_aches, cough, headache",
+                    },
+                ],
             },
-            top_symptoms: ["fatigue", "sore_throat", "body_aches", "cough", "headache"],
-            warning_level: "info",
-            warnings: [
-                {
-                    severity: "warning",
-                    title: "High-risk cases present",
-                    detail: "23 high-risk reports detected in selected window.",
+            "48": {
+                location_mode: "global",
+                location_label: "all-locations",
+                lookback_hours: 48,
+                total_reports: 612,
+                unhealthy_reports: 73,
+                unhealthy_ratio: 0.1193,
+                average_risk_score: 24.88,
+                risk_breakdown: {
+                    low: 539,
+                    moderate: 36,
+                    high: 37,
                 },
-                {
-                    severity: "info",
-                    title: "Most reported symptoms",
-                    detail: "fatigue, sore_throat, body_aches, cough, headache",
+                top_symptoms: ["fatigue", "sore_throat", "cough", "headache", "congestion"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Elevated medium/high-risk reports",
+                        detail: "73 unhealthy reports detected in selected window.",
+                    },
+                    {
+                        severity: "info",
+                        title: "Most reported symptoms",
+                        detail: "fatigue, sore_throat, cough, headache, congestion",
+                    },
+                ],
+            },
+            "168": {
+                location_mode: "global",
+                location_label: "all-locations",
+                lookback_hours: 168,
+                total_reports: 1654,
+                unhealthy_reports: 244,
+                unhealthy_ratio: 0.1475,
+                average_risk_score: 31.67,
+                risk_breakdown: {
+                    low: 1410,
+                    moderate: 118,
+                    high: 126,
                 },
-            ],
+                top_symptoms: ["fatigue", "cough", "body_aches", "headache", "shortness_of_breath"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Persistent high-risk trend",
+                        detail: "High-risk cases sustained across the week.",
+                    },
+                    {
+                        severity: "info",
+                        title: "Most reported symptoms",
+                        detail: "fatigue, cough, body_aches, headache, shortness_of_breath",
+                    },
+                ],
+            },
         },
-        "48": {
-            location_mode: "global",
-            location_label: "all-locations",
-            lookback_hours: 48,
-            total_reports: 612,
-            unhealthy_reports: 73,
-            unhealthy_ratio: 0.1193,
-            average_risk_score: 24.88,
-            risk_breakdown: {
-                low: 539,
-                moderate: 36,
-                high: 37,
+        phoenix: {
+            "24": {
+                location_mode: "city",
+                location_label: "Phoenix",
+                lookback_hours: 24,
+                total_reports: 128,
+                unhealthy_reports: 18,
+                unhealthy_ratio: 0.1406,
+                average_risk_score: 27.41,
+                risk_breakdown: {
+                    low: 110,
+                    moderate: 9,
+                    high: 9,
+                },
+                top_symptoms: ["fatigue", "cough", "sore_throat", "headache", "body_aches"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Rising respiratory symptoms",
+                        detail: "Higher cough and sore throat reports in Phoenix.",
+                    },
+                    {
+                        severity: "info",
+                        title: "Most reported symptoms",
+                        detail: "fatigue, cough, sore_throat, headache, body_aches",
+                    },
+                ],
             },
-            top_symptoms: ["fatigue", "sore_throat", "cough", "headache", "congestion"],
-            warning_level: "warning",
-            warnings: [
-                {
-                    severity: "warning",
-                    title: "Elevated medium/high-risk reports",
-                    detail: "73 unhealthy reports detected in selected window.",
+            "48": {
+                location_mode: "city",
+                location_label: "Phoenix",
+                lookback_hours: 48,
+                total_reports: 202,
+                unhealthy_reports: 34,
+                unhealthy_ratio: 0.1683,
+                average_risk_score: 32.12,
+                risk_breakdown: {
+                    low: 168,
+                    moderate: 17,
+                    high: 17,
                 },
-                {
-                    severity: "info",
-                    title: "Most reported symptoms",
-                    detail: "fatigue, sore_throat, cough, headache, congestion",
+                top_symptoms: ["fatigue", "cough", "body_aches", "headache", "fever"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "High-risk cluster in local pockets",
+                        detail: "17 high-risk reports in selected window.",
+                    },
+                ],
+            },
+            "168": {
+                location_mode: "city",
+                location_label: "Phoenix",
+                lookback_hours: 168,
+                total_reports: 501,
+                unhealthy_reports: 101,
+                unhealthy_ratio: 0.2016,
+                average_risk_score: 39.75,
+                risk_breakdown: {
+                    low: 400,
+                    moderate: 49,
+                    high: 52,
                 },
-            ],
+                top_symptoms: ["fatigue", "cough", "fever", "body_aches", "shortness_of_breath"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Sustained elevated risk in Phoenix",
+                        detail: "Weekly pattern indicates above-average unhealthy ratio.",
+                    },
+                ],
+            },
         },
-        "168": {
-            location_mode: "global",
-            location_label: "all-locations",
-            lookback_hours: 168,
-            total_reports: 1654,
-            unhealthy_reports: 244,
-            unhealthy_ratio: 0.1475,
-            average_risk_score: 31.67,
-            risk_breakdown: {
-                low: 1410,
-                moderate: 118,
-                high: 126,
+        tucson: {
+            "24": {
+                location_mode: "city",
+                location_label: "Tucson",
+                lookback_hours: 24,
+                total_reports: 92,
+                unhealthy_reports: 8,
+                unhealthy_ratio: 0.087,
+                average_risk_score: 18.04,
+                risk_breakdown: {
+                    low: 84,
+                    moderate: 4,
+                    high: 4,
+                },
+                top_symptoms: ["fatigue", "headache", "congestion", "sore_throat", "nausea"],
+                warning_level: "info",
+                warnings: [
+                    {
+                        severity: "info",
+                        title: "Stable local pattern",
+                        detail: "No significant spike in high-risk reports in Tucson.",
+                    },
+                ],
             },
-            top_symptoms: ["fatigue", "cough", "body_aches", "headache", "shortness_of_breath"],
-            warning_level: "warning",
-            warnings: [
-                {
-                    severity: "warning",
-                    title: "Persistent high-risk trend",
-                    detail: "High-risk cases sustained across the week.",
+            "48": {
+                location_mode: "city",
+                location_label: "Tucson",
+                lookback_hours: 48,
+                total_reports: 151,
+                unhealthy_reports: 18,
+                unhealthy_ratio: 0.1192,
+                average_risk_score: 23.91,
+                risk_breakdown: {
+                    low: 133,
+                    moderate: 8,
+                    high: 10,
                 },
-                {
-                    severity: "info",
-                    title: "Most reported symptoms",
-                    detail: "fatigue, cough, body_aches, headache, shortness_of_breath",
+                top_symptoms: ["fatigue", "headache", "sore_throat", "cough", "congestion"],
+                warning_level: "info",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Watch moderate-risk reports",
+                        detail: "Moderate and high categories increased slightly over 48h.",
+                    },
+                ],
+            },
+            "168": {
+                location_mode: "city",
+                location_label: "Tucson",
+                lookback_hours: 168,
+                total_reports: 396,
+                unhealthy_reports: 53,
+                unhealthy_ratio: 0.1338,
+                average_risk_score: 28.11,
+                risk_breakdown: {
+                    low: 343,
+                    moderate: 23,
+                    high: 30,
                 },
-            ],
+                top_symptoms: ["fatigue", "cough", "headache", "congestion", "body_aches"],
+                warning_level: "warning",
+                warnings: [
+                    {
+                        severity: "warning",
+                        title: "Gradual uptick in high-risk reports",
+                        detail: "High-risk share increased toward the end of the week.",
+                    },
+                ],
+            },
         },
     };
-    const communitySnapshot = communitySnapshotsByLookback[communityLookbackHours] || communitySnapshotsByLookback["24"];
+    const communitySnapshot =
+        communitySnapshotsByLocationAndLookback[communityLocation]?.[communityLookbackHours] ||
+        communitySnapshotsByLocationAndLookback["all-locations"]["24"];
     const communityRiskBreakdownBars = useMemo(() => {
         const breakdown = communitySnapshot.risk_breakdown || {};
         const entries = [
@@ -519,6 +671,17 @@ export default function App() {
                                         <option value="24">Last 24 hours</option>
                                         <option value="48">Last 48 hours</option>
                                         <option value="168">Last 7 days</option>
+                                    </select>
+                                </label>
+                                <label className="community-time-filter">
+                                    <span>Location</span>
+                                    <select
+                                        value={communityLocation}
+                                        onChange={(event) => setCommunityLocation(event.target.value)}
+                                    >
+                                        <option value="all-locations">All Locations</option>
+                                        <option value="phoenix">Phoenix</option>
+                                        <option value="tucson">Tucson</option>
                                     </select>
                                 </label>
                                 <span className={`community-warning-pill ${toneClassForSeverity(communitySnapshot.warning_level)}`}>
