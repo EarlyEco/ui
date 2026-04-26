@@ -13,7 +13,7 @@ import Signin from "./components/signin";
 
 export default function App() {
     const [activeView, setActiveView] = useState("signup");
-    const [isSignedIn, setIsSignedIn] = useState(Boolean(getSessionToken()));
+    const [isSignedIn, setIsSignedIn] = useState(false);
     const [hasLoggedInThisVisit, setHasLoggedInThisVisit] = useState(false);
     const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
     const [healthInfo, setHealthInfo] = useState(null);
@@ -155,32 +155,34 @@ export default function App() {
                 </p>
             </header>
 
-            <section className="panel">
-                <div className="tab-row">
-                    <button
-                        className={`tab-button ${activeView === "signup" ? "active" : ""}`}
-                        onClick={() => setActiveView("signup")}
-                        type="button"
-                    >
-                        Create Account
-                    </button>
-                    <button
-                        className={`tab-button ${activeView === "signin" ? "active" : ""}`}
-                        onClick={() => setActiveView("signin")}
-                        type="button"
-                    >
-                        Sign In
-                    </button>
-                </div>
+            {!isSignedIn && (
+                <section className="panel">
+                    <div className="tab-row">
+                        <button
+                            className={`tab-button ${activeView === "signup" ? "active" : ""}`}
+                            onClick={() => setActiveView("signup")}
+                            type="button"
+                        >
+                            Create Account
+                        </button>
+                        <button
+                            className={`tab-button ${activeView === "signin" ? "active" : ""}`}
+                            onClick={() => setActiveView("signin")}
+                            type="button"
+                        >
+                            Sign In
+                        </button>
+                    </div>
 
-                <div className="form-area">
-                    {activeView === "signup" ? (
-                        <Signup onSignupSuccess={() => setActiveView("signin")} />
-                    ) : (
-                        <Signin onSigninSuccess={handleSigninSuccess} />
-                    )}
-                </div>
-            </section>
+                    <div className="form-area">
+                        {activeView === "signup" ? (
+                            <Signup onSignupSuccess={() => setActiveView("signin")} />
+                        ) : (
+                            <Signin onSigninSuccess={handleSigninSuccess} />
+                        )}
+                    </div>
+                </section>
+            )}
 
             {isSignedIn && hasLoggedInThisVisit && (
                 <section className="panel health-panel">

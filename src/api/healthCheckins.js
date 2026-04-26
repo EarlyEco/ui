@@ -65,6 +65,27 @@ const createError = (message, userMessage) => {
     return error;
 };
 
+const formatApiDetail = (detail, fallbackMessage) => {
+    if (Array.isArray(detail)) {
+        return detail
+            .map((item) => {
+                const field = Array.isArray(item?.loc) ? item.loc[item.loc.length - 1] : "field";
+                return `${field}: ${item?.msg || "invalid value"}`;
+            })
+            .join(", ");
+    }
+
+    if (typeof detail === "string" && detail.trim()) {
+        return detail;
+    }
+
+    if (detail && typeof detail === "object") {
+        return JSON.stringify(detail);
+    }
+
+    return fallbackMessage;
+};
+
 export const submitHealthCheckin = async (payload) => {
     let response;
 
@@ -88,7 +109,7 @@ export const submitHealthCheckin = async (payload) => {
         let detail = "Unable to save health details right now.";
         try {
             const data = await response.json();
-            detail = data?.detail || data?.message || detail;
+            detail = formatApiDetail(data?.detail || data?.message, detail);
         } catch {
             // keep default detail
         }
@@ -104,7 +125,7 @@ const readJsonOrThrow = async (response, fallbackMessage) => {
     let detail = fallbackMessage;
     try {
         const data = await response.json();
-        detail = data?.detail || data?.message || fallbackMessage;
+        detail = formatApiDetail(data?.detail || data?.message, fallbackMessage);
     } catch {
         // keep fallback
     }
