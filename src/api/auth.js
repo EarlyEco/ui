@@ -11,12 +11,23 @@ const createError = (message, status, userMessage) => {
 
 export const setSessionToken = (token) => {
     sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
 };
 
-export const getSessionToken = () => sessionStorage.getItem(TOKEN_KEY);
+export const getSessionToken = () => {
+    const sessionToken = sessionStorage.getItem(TOKEN_KEY);
+    if (sessionToken) return sessionToken;
+
+    const persistentToken = localStorage.getItem(TOKEN_KEY);
+    if (persistentToken) {
+        sessionStorage.setItem(TOKEN_KEY, persistentToken);
+    }
+    return persistentToken;
+};
 
 export const clearSessionToken = () => {
     sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
 };
 
 const parseError = async (res, fallbackMessage) => {
@@ -111,4 +122,84 @@ export const signin = async (data) => {
     }
 
     return payload;
+};
+
+export const fetchMe = async () => {
+    const token = getSessionToken();
+    if (!token) {
+        throw createError("Missing auth token", 401, "Please sign in again to load profile details.");
+    }
+
+    const usersApiBase = import.meta.env.DEV ? "/api/v1/users" : `${BASE_URL}/api/v1/users`;
+    const candidates = [
+        `${API_BASE}/me`,
+        `${API_BASE}/me/`,
+        `${usersApiBase}/self`,
+        `${usersApiBase}/self/`,
+    ];
+    let lastError = null;
+
+    for (const endpoint of candidates) {
+        try {
+            const res = await authFetch(endpoint, {
+                headers: {
+                    accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) {
+                await parseError(res, "Unable to load profile.");
+            }
+
+            const payload = await res.json();
+            const normalized = payload?.user || payload?.data || payload;
+            if (normalized && typeof normalized === "object") {
+                return normalized;
+            }
+            return {};
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (lastError?.userMessage) {
+        throw lastError;
+    }
+
+    throw createError("Failed to fetch", 0, "Unable to load profile right now.");
+};
+
+export const logout = async () => {
+    const token = getSessionToken();
+    if (!token) {
+        clearSessionToken();
+        return { status: "ok" };
+    }
+
+    let res;
+    try {
+        res = await fetch(`${API_BASE}/logout?token=${encodeURIComponent(token)}`, {
+            method: "POST",
+            headers: {
+                accept: "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+    } catch {
+        // Even if backend is unreachable, clear local token.
+        clearSessionToken();
+        return { status: "ok", message: "Local session cleared." };
+    }
+
+    clearSessionToken();
+    if (!res.ok) {
+        return { status: "ok", message: "Local session cleared." };
+    }
+
+    try {
+        return await res.json();
+    } catch {
+        return { status: "ok" };
+    }
 };

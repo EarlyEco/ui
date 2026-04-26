@@ -1,6 +1,6 @@
 import Signup from "./components/Signup";
 import { useEffect, useMemo, useState } from "react";
-import { getSessionToken } from "./api/auth";
+import { clearSessionToken, fetchMe, getSessionToken, logout } from "./api/auth";
 import {
     fetchHealthCheckinById,
     fetchHealthCheckinList,
@@ -27,6 +27,10 @@ export default function App() {
     const [isCheckinLoading, setIsCheckinLoading] = useState(false);
     const [historyPage, setHistoryPage] = useState(1);
     const [historyPageSize, setHistoryPageSize] = useState(5);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [profileData, setProfileData] = useState(null);
+    const [isProfileLoading, setIsProfileLoading] = useState(false);
+    const [profileError, setProfileError] = useState("");
     const [apiCallStats, setApiCallStats] = useState({
         latest: 0,
         trend: 0,
@@ -125,6 +129,12 @@ export default function App() {
             );
             setHistoryPage(1);
         } catch (error) {
+            if (error?.status === 401) {
+                clearSessionToken();
+                setIsSignedIn(false);
+                setHealthSubmitMessage("⚠️ Session expired. Please sign in again.");
+                return;
+            }
             setHealthSubmitMessage(`❌ ${error?.userMessage || "Unable to load health information right now."}`);
         } finally {
             setIsHealthLoading(false);
@@ -141,6 +151,34 @@ export default function App() {
         setIsSignedIn(true);
         setHealthSubmitMessage("");
         setIsHealthModalOpen(true);
+    };
+
+    const handleLogout = async () => {
+        await logout();
+        setIsSignedIn(false);
+        setHealthInfo(null);
+        setHealthTrend(null);
+        setHealthHistory([]);
+        setSelectedCheckin(null);
+        setHealthSubmitMessage("✅ Logged out successfully.");
+        setActiveView("signin");
+        setIsProfileOpen(false);
+    };
+
+    const handleOpenProfile = async () => {
+        setIsProfileOpen(true);
+        setIsProfileLoading(true);
+        setProfileError("");
+        try {
+            const me = await fetchMe();
+            setProfileData(me);
+        } catch (error) {
+            setProfileData(null);
+            setProfileError(error?.userMessage || "Unable to load profile details.");
+            setHealthSubmitMessage(`❌ ${error?.userMessage || "Unable to load profile."}`);
+        } finally {
+            setIsProfileLoading(false);
+        }
     };
 
     const handleHealthSubmit = async (payload) => {
@@ -186,6 +224,25 @@ export default function App() {
         <div className="app-shell">
             <div className="ambient-glow glow-one" />
             <div className="ambient-glow glow-two" />
+
+            {isSignedIn && (
+                <div className="page-top-actions">
+                    <button
+                        className="ghost-button icon-button"
+                        type="button"
+                        onClick={handleOpenProfile}
+                        aria-label="Open profile"
+                        title="Profile"
+                    >
+                        <svg viewBox="0 0 24 24" className="icon-svg" aria-hidden="true">
+                            <path
+                                d="M12 12a4.75 4.75 0 1 0-4.75-4.75A4.75 4.75 0 0 0 12 12Zm0 2.5c-4.25 0-7.75 2.43-7.75 5.42A1.08 1.08 0 0 0 5.33 21h13.34a1.08 1.08 0 0 0 1.08-1.08c0-2.99-3.5-5.42-7.75-5.42Z"
+                                fill="currentColor"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             {!isSignedIn && (
                 <section className="panel">
@@ -441,6 +498,37 @@ export default function App() {
                 onSubmit={handleHealthSubmit}
                 submitting={isSubmittingHealth}
             />
+
+            {isProfileOpen && (
+                <div className="modal-overlay" role="dialog" aria-modal="true">
+                    <div className="modal-card profile-modal-card">
+                        <div className="modal-header">
+                            <h3>User Profile</h3>
+                            <button type="button" className="ghost-button" onClick={() => setIsProfileOpen(false)}>
+                                Close
+                            </button>
+                        </div>
+
+                        {isProfileLoading ? (
+                            <p className="status-message">Loading profile...</p>
+                        ) : profileData ? (
+                            <div className="profile-grid">
+                                <div><span>ID</span><strong>{profileData.id || "-"}</strong></div>
+                                <div><span>Email</span><strong>{profileData.email || "-"}</strong></div>
+                                <div><span>First Name</span><strong>{profileData.first_name || "-"}</strong></div>
+                                <div><span>Last Name</span><strong>{profileData.last_name || "-"}</strong></div>
+                                <div><span>Address</span><strong>{profileData.permanent_address || "-"}</strong></div>
+                            </div>
+                        ) : (
+                            <p className="status-message error">{profileError || "Unable to load profile details."}</p>
+                        )}
+
+                        <button className="ghost-button logout-btn" type="button" onClick={handleLogout}>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <footer className="app-footer">Secure by design - {currentYear}</footer>
         </div>
