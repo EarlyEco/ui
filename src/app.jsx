@@ -1,6 +1,5 @@
 import Signup from "./components/Signup";
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip } from "react-leaflet";
 import { useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -356,6 +355,16 @@ export default function App() {
         if (text.includes("monitor") || text.includes("watch") || text.includes("mild")) return "tone-warning";
         if (text.includes("no strong risk") || text.includes("stable") || text.includes("healthy")) return "tone-good";
         return toneClassForRisk(riskLevel);
+    };
+    const extractWarningSymptoms = (warning) => {
+        if (!warning || typeof warning !== "object") return [];
+        const title = String(warning.title || "").toLowerCase();
+        if (!title.includes("most reported symptoms")) return [];
+        const detail = String(warning.detail || "");
+        return detail
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean);
     };
     const toneClassForVitals = (vitals) => {
         const hr = Number(vitals?.heart_rate_bpm);
@@ -750,9 +759,21 @@ export default function App() {
             <div className="community-warning-list">
                 {communitySnapshot.warnings.length > 0 ? (
                     communitySnapshot.warnings.map((warning) => (
-                        <article key={warning.title} className={`suggestion-item ${toneClassForSeverity(warning.severity)}`}>
+                        <article
+                            key={warning.title}
+                            className={`suggestion-item community-warning-card ${toneClassForSeverity(warning.severity)}`}
+                        >
                             <strong>{warning.title}</strong>
                             <span>{warning.detail}</span>
+                            {extractWarningSymptoms(warning).length > 0 && (
+                                <div className="community-symptom-chip-row" aria-label="Most reported symptoms">
+                                    {extractWarningSymptoms(warning).map((symptom) => (
+                                        <span key={symptom} className="community-symptom-chip">
+                                            {symptom.replace(/_/g, " ")}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </article>
                     ))
                 ) : (
@@ -762,28 +783,8 @@ export default function App() {
         </section>
     );
 
-    const signedInTopBar = (
-        <div className="page-top-actions" role="navigation" aria-label="Account">
-            <button
-                className="ghost-button icon-button"
-                type="button"
-                onClick={handleOpenProfile}
-                aria-label="Open profile"
-                title="Profile"
-            >
-                <svg viewBox="0 0 24 24" className="icon-svg" aria-hidden="true">
-                    <path
-                        d="M12 12a4.75 4.75 0 1 0-4.75-4.75A4.75 4.75 0 0 0 12 12Zm0 2.5c-4.25 0-7.75 2.43-7.75 5.42A1.08 1.08 0 0 0 5.33 21h13.34a1.08 1.08 0 0 0 1.08-1.08c0-2.99-3.5-5.42-7.75-5.42Z"
-                        fill="currentColor"
-                    />
-                </svg>
-            </button>
-        </div>
-    );
-
     return (
         <>
-            {isSignedIn ? createPortal(signedInTopBar, document.body) : null}
             <div className={`app-shell ${isSignedIn ? "signed-in" : "logged-out"}`}>
             <div className="ambient-glow glow-one" />
             <div className="ambient-glow glow-two" />
@@ -860,7 +861,25 @@ export default function App() {
 
             {isSignedIn && (
                 <section className="panel health-panel">
-                    <h1 className="main-page-title">EarlyEco Health Dashboard</h1>
+                    <div className="dashboard-title-row">
+                        <h1 className="main-page-title">EarlyEco Health Dashboard</h1>
+                        <div className="dashboard-user-action" role="navigation" aria-label="Account">
+                            <button
+                                className="ghost-button icon-button"
+                                type="button"
+                                onClick={handleOpenProfile}
+                                aria-label="Open profile"
+                                title="Profile"
+                            >
+                                <svg viewBox="0 0 24 24" className="icon-svg" aria-hidden="true">
+                                    <path
+                                        d="M12 12a4.75 4.75 0 1 0-4.75-4.75A4.75 4.75 0 0 0 12 12Zm0 2.5c-4.25 0-7.75 2.43-7.75 5.42A1.08 1.08 0 0 0 5.33 21h13.34a1.08 1.08 0 0 0 1.08-1.08c0-2.99-3.5-5.42-7.75-5.42Z"
+                                        fill="currentColor"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                     <div className="dashboard-top">
                         <div className="dashboard-top-left">
                             <div className="card-heading">

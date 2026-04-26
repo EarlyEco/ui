@@ -103,6 +103,25 @@ body {
     height: 18px;
 }
 
+.dashboard-title-row {
+    position: relative;
+    margin: 0 0 10px;
+    min-height: 44px;
+}
+
+.dashboard-title-row .main-page-title {
+    margin: 0;
+    padding: 0 52px;
+}
+
+.dashboard-user-action {
+    position: absolute;
+    top: 50%;
+    right: 28px;
+    transform: translateY(-50%);
+    z-index: 3;
+}
+
 .main-page-title {
     position: relative;
     z-index: 1;
@@ -410,6 +429,39 @@ body {
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.community-warning-card {
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(5, 12, 38, 0.28);
+}
+
+.community-warning-card strong {
+    font-size: 0.94rem;
+}
+
+.community-warning-card > span {
+    color: #d7def8;
+}
+
+.community-symptom-chip-row {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.community-symptom-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 9px;
+    border: 1px solid rgba(114, 214, 255, 0.35);
+    background: rgba(14, 45, 66, 0.4);
+    color: #dcf2ff;
+    font-size: 0.76rem;
+    line-height: 1;
+    text-transform: capitalize;
 }
 
 .community-chart-grid {
@@ -1925,6 +1977,10 @@ body {
     .main-page-title {
         font-size: 1.15rem;
         margin-bottom: 8px;
+    }
+
+    .dashboard-title-row .main-page-title {
+        padding: 0 46px;
     }
 
     .card-heading p,
