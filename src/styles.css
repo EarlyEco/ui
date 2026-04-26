@@ -398,8 +398,9 @@ body {
 .community-chart-grid {
     margin-top: 10px;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(260px, 0.3fr) minmax(420px, 0.7fr);
     gap: 10px;
+    align-items: stretch;
 }
 
 .community-chart-stack {
