@@ -1,3 +1,9 @@
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
 :root {
     color-scheme: dark;
     font-family: Inter, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
@@ -10,23 +16,33 @@
 
 body {
     margin: 0;
-    min-height: 100vh;
     color: #f8faff;
     background: radial-gradient(circle at 15% 20%, #3432a8 0%, transparent 35%),
         radial-gradient(circle at 90% 10%, #098c8d 0%, transparent 28%),
         linear-gradient(145deg, #060913 5%, #111936 45%, #100f2a 100%);
-    overflow-x: hidden;
 }
 
 #root {
-    min-height: 100vh;
+    height: 100%;
+    overflow: hidden;
 }
 
 .app-shell {
     position: relative;
-    width: min(1280px, 100%);
+    width: 100%;
     margin: 0 auto;
-    padding: 32px 20px 28px;
+    padding: 10px 12px 8px;
+    min-height: 100vh;
+}
+
+.main-page-title {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 10px;
+    font-size: clamp(1.3rem, 3.1vw, 2rem);
+    color: #eaf2ff;
+    text-shadow: 0 0 24px rgba(47, 136, 255, 0.25);
+    text-align: center;
 }
 
 .ambient-glow {
@@ -91,8 +107,8 @@ body {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
     backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 22px;
-    padding: 18px;
+    border-radius: 14px;
+    padding: 12px;
     box-shadow: 0 22px 50px rgba(1, 7, 28, 0.5);
 }
 
@@ -282,23 +298,30 @@ body {
 }
 
 .app-footer {
-    margin-top: 16px;
+    margin-top: 8px;
     text-align: center;
     color: #a2adcf;
     font-size: 0.84rem;
 }
 
 .health-panel {
-    margin-top: 16px;
+    margin-top: 8px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    height: calc(100vh - 130px);
+    height: calc(100vh - 24px);
     overflow: hidden;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
 }
 
 .kpi-top-grid {
     margin-top: 4px;
+    gap: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .dashboard-top {
@@ -307,8 +330,8 @@ body {
     z-index: 4;
     border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(4, 10, 32, 0.88);
-    border-radius: 14px;
-    padding: 6px 10px;
+    border-radius: 10px;
+    padding: 6px 8px;
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 0;
@@ -318,13 +341,15 @@ body {
 
 .dashboard-top-right {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding-left: 8px;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 10px;
     border-left: 1px solid rgba(255, 255, 255, 0.12);
-    align-items: end;
-    justify-content: flex-end;
+}
+
+.dashboard-top-left .card-heading h2,
+.dashboard-top-left .card-heading p {
+    text-align: left;
 }
 
 .dashboard-scroll {
@@ -332,6 +357,7 @@ body {
     max-height: none;
     overflow-y: auto;
     padding-right: 4px;
+    padding-top: 6px;
 }
 
 .health-json-view {
@@ -354,14 +380,14 @@ body {
 
 .filter-grid {
     display: grid;
-    grid-template-columns: auto auto auto;
+    grid-template-columns: 1fr 1fr auto;
     gap: 10px;
     align-items: end;
 }
 
 .control-btn {
     padding: 7px 10px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     margin-top: 0;
 }
 
@@ -478,8 +504,17 @@ body {
 }
 
 .insight-card strong {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     color: #eaf2ff;
+}
+
+.kpi-top-grid .insight-card {
+    border-radius: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.kpi-top-grid .insight-card:last-child {
+    border-right: none;
 }
 
 .health-summary h3,
@@ -606,11 +641,11 @@ body {
 
 @media (max-width: 680px) {
     .app-shell {
-        padding-top: 36px;
+        padding: 8px;
     }
 
     .panel {
-        padding: 14px;
+        padding: 10px;
     }
 
     .field-grid {
@@ -641,7 +676,6 @@ body {
     .dashboard-top-right {
         border-left: none;
         padding-left: 0;
-        justify-content: flex-start;
     }
 
     .dashboard-scroll {

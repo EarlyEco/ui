@@ -212,6 +212,7 @@ export default function App() {
 
             {isSignedIn && hasLoggedInThisVisit && (
                 <section className="panel health-panel">
+                    <h1 className="main-page-title">EarlyEco Health Dashboard</h1>
                     <div className="dashboard-top">
                         <div className="dashboard-top-left">
                             <div className="card-heading">
@@ -240,9 +241,6 @@ export default function App() {
                         <div className="dashboard-top-right">
                             <button className="primary-button control-btn" type="button" onClick={() => setIsHealthModalOpen(true)}>
                                 Feed your health info
-                            </button>
-                            <button className="ghost-button control-btn" type="button" onClick={loadHealthDashboard}>
-                                Refresh Data
                             </button>
                             <div className="filter-grid">
                                 <label className="field">
