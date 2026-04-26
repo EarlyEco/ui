@@ -26,6 +26,10 @@ export default function App() {
     const [selectedCheckin, setSelectedCheckin] = useState(null);
     const [isCheckinLoading, setIsCheckinLoading] = useState(false);
     const currentYear = useMemo(() => new Date().getFullYear(), []);
+    const formatDateTime = (value) => {
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? "-" : parsed.toLocaleString();
+    };
     const riskChartData = useMemo(() => {
         const normalized = [...healthHistory]
             .filter((entry) => entry?.recorded_at && typeof entry?.risk_score === "number")
@@ -222,7 +226,7 @@ export default function App() {
                                         className="risk-point"
                                         onClick={() => handleSelectCheckin(point.id)}
                                     >
-                                        <title>{`${new Date(point.recordedAt).toLocaleString()} | Risk ${point.risk}`}</title>
+                                        <title>{`${formatDateTime(point.recordedAt)} | Risk ${point.risk}`}</title>
                                     </circle>
                                 ))}
                             </svg>
@@ -273,7 +277,7 @@ export default function App() {
                                 <tbody>
                                     {healthHistory.map((entry) => (
                                         <tr key={entry.id}>
-                                            <td>{entry.recorded_at ? new Date(entry.recorded_at).toLocaleString() : "-"}</td>
+                                            <td>{entry.recorded_at ? formatDateTime(entry.recorded_at) : "-"}</td>
                                             <td>
                                                 <button
                                                     className="link-button"

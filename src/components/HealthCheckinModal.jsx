@@ -37,6 +37,12 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
         setTopLevel(key, list);
     };
 
+    const toSafeIso = (rawValue) => {
+        if (!rawValue) return new Date().toISOString();
+        const parsed = new Date(rawValue);
+        return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         setLocalError("");
@@ -292,7 +298,7 @@ export default function HealthCheckinModal({ open, onClose, onSubmit, submitting
                                 onChange={(e) =>
                                     setTopLevel(
                                         "recorded_at",
-                                        e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString()
+                                        toSafeIso(e.target.value)
                                     )
                                 }
                             />
