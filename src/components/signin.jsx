@@ -12,10 +12,26 @@ export default function Signin() {
         e.preventDefault();
         try {
             const res = await signin(form);
-            localStorage.setItem("token", res.access_token);
-            setMsg("✅ Login successful");
-        } catch {
-            setMsg("❌ Login failed");
+            if (res?.access_token) {
+                setMsg("✅ Sign in successful. Session token stored.");
+                return;
+            }
+
+            setMsg("❌ Sign in failed. No access token returned.");
+        } catch (error) {
+            const status = error?.status;
+            const detail = (error?.message || "").toLowerCase();
+            const userMissing =
+                status === 404 ||
+                detail.includes("not found") ||
+                detail.includes("does not exist") ||
+                detail.includes("user not found");
+
+            setMsg(
+                userMissing
+                    ? "⚠️ User does not exist. Please sign up first."
+                    : `❌ Sign in failed. ${error?.message || "Please try again."}`
+            );
         }
     };
 
@@ -40,7 +56,11 @@ export default function Signin() {
                 <button className="primary-button" type="submit">Sign In</button>
             </form>
 
-            {msg && <p className={`status-message ${msg.includes("failed") ? "error" : "success"}`}>{msg}</p>}
+            {msg && (
+                <p className={`status-message ${(msg.includes("failed") || msg.includes("does not exist")) ? "error" : "success"}`}>
+                    {msg}
+                </p>
+            )}
         </div>
     );
 }

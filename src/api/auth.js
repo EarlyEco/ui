@@ -1,4 +1,44 @@
 const API_BASE = "http://127.0.0.1:8000/api/v1/auth";
+const TOKEN_KEY = "auth_token";
+
+export const setSessionToken = (token) => {
+    sessionStorage.setItem(TOKEN_KEY, token);
+};
+
+export const getSessionToken = () => sessionStorage.getItem(TOKEN_KEY);
+
+export const clearSessionToken = () => {
+    sessionStorage.removeItem(TOKEN_KEY);
+};
+
+const parseError = async (res, fallbackMessage) => {
+    let detail = fallbackMessage;
+
+    try {
+        const data = await res.json();
+        detail = data?.detail || data?.message || fallbackMessage;
+    } catch {
+        // Keep fallback message when body is not JSON
+    }
+
+    const error = new Error(detail);
+    error.status = res.status;
+    throw error;
+};
+
+export const getAuthHeaders = () => {
+    const token = getSessionToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const authFetch = (url, options = {}) => {
+    const headers = {
+        ...(options.headers || {}),
+        ...getAuthHeaders(),
+    };
+
+    return fetch(url, { ...options, headers });
+};
 
 export const signup = async (data) => {
     const res = await fetch(`${API_BASE}/signup`, {
@@ -7,7 +47,7 @@ export const signup = async (data) => {
         body: JSON.stringify(data),
     });
 
-    if (!res.ok) throw new Error("Signup failed");
+    if (!res.ok) await parseError(res, "Signup failed");
     return res.json();
 };
 
@@ -18,6 +58,12 @@ export const signin = async (data) => {
         body: JSON.stringify(data),
     });
 
-    if (!res.ok) throw new Error("Signin failed");
-    return res.json();
+    if (!res.ok) await parseError(res, "Signin failed");
+
+    const payload = await res.json();
+    if (payload?.access_token) {
+        setSessionToken(payload.access_token);
+    }
+
+    return payload;
 };

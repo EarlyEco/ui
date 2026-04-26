@@ -38,7 +38,11 @@ export default function App() {
                 </div>
 
                 <div className="form-area">
-                    {activeView === "signup" ? <Signup /> : <Signin />}
+                    {activeView === "signup" ? (
+                        <Signup onSignupSuccess={() => setActiveView("signin")} />
+                    ) : (
+                        <Signin />
+                    )}
                 </div>
             </section>
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { signup } from "../api/auth";
 
-export default function Signup() {
+export default function Signup({ onSignupSuccess }) {
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -18,9 +18,10 @@ export default function Signup() {
         e.preventDefault();
         try {
             await signup(form);
-            setMsg("✅ Signup successful");
-        } catch {
-            setMsg("❌ Signup failed");
+            setMsg("✅ Signup successful. Please sign in to continue.");
+            onSignupSuccess?.();
+        } catch (error) {
+            setMsg(`❌ Signup failed. ${error?.message || "Please try again."}`);
         }
     };
 
