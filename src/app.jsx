@@ -137,6 +137,28 @@ export default function App() {
         if (value.includes("maintenance")) return "tone-good";
         return "tone-neutral";
     };
+    const toneClassForRiskScore = (score) => {
+        if (typeof score !== "number") return "tone-neutral";
+        if (score >= 66) return "tone-critical";
+        if (score >= 33) return "tone-warning";
+        return "tone-good";
+    };
+    const toneClassForTrendDirection = (direction) => {
+        const value = (direction || "").toLowerCase();
+        if (value.includes("wors")) return "tone-critical";
+        if (value.includes("improv")) return "tone-good";
+        if (value.includes("stable")) return "tone-info";
+        return "tone-neutral";
+    };
+    const toneClassForHealthyRatio = (healthyPoints, totalPoints) => {
+        if (typeof healthyPoints !== "number" || typeof totalPoints !== "number" || totalPoints <= 0) {
+            return "tone-neutral";
+        }
+        const ratio = healthyPoints / totalPoints;
+        if (ratio >= 0.8) return "tone-good";
+        if (ratio >= 0.5) return "tone-warning";
+        return "tone-critical";
+    };
 
     const loadHealthDashboard = async () => {
         if (!getSessionToken()) return;
@@ -378,19 +400,24 @@ export default function App() {
                         </div>
                     </div>
                     <div className="insight-grid kpi-top-grid">
-                        <div className="insight-card">
+                        <div className={`insight-card ${toneClassForRisk(healthInfo?.risk_level)}`}>
                             <span>Risk Level</span>
                             <strong>{healthTrend?.latest_is_healthy ? "Healthy" : healthInfo?.risk_level || "-"}</strong>
                         </div>
-                        <div className="insight-card">
+                        <div className={`insight-card ${toneClassForRiskScore(healthTrend?.latest_risk_score)}`}>
                             <span>Latest Risk Score</span>
                             <strong>{healthTrend?.latest_risk_score ?? "-"}</strong>
                         </div>
-                        <div className="insight-card">
+                        <div className={`insight-card ${toneClassForTrendDirection(healthTrend?.trend_direction)}`}>
                             <span>Trend Direction</span>
                             <strong>{healthTrend?.trend_direction || "-"}</strong>
                         </div>
-                        <div className="insight-card">
+                        <div
+                            className={`insight-card ${toneClassForHealthyRatio(
+                                healthTrend?.healthy_points,
+                                healthTrend?.total_points
+                            )}`}
+                        >
                             <span>Healthy Check-ins</span>
                             <strong>{healthTrend?.healthy_points ?? 0} / {healthTrend?.total_points ?? 0}</strong>
                         </div>
