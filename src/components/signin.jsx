@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { signin } from "../api/auth";
 
-export default function Signin() {
+export default function Signin({ onSigninSuccess }) {
     const [form, setForm] = useState({ email: "", password: "" });
     const [msg, setMsg] = useState("");
 
@@ -14,6 +14,7 @@ export default function Signin() {
             const res = await signin(form);
             if (res?.access_token) {
                 setMsg("✅ Sign in successful. Session token stored.");
+                onSigninSuccess?.(res);
                 return;
             }
 
